@@ -34,10 +34,10 @@ module ZendeskAPI
     agents = get_users_by_role(subdomain, email, api_token, 'agent')
     admins = get_users_by_role(subdomain, email, api_token, 'admin')
 
-    # Объединяем и создаём hash name => id
+    # Fusionner et construire un hash name => id
     combined = agents + admins
 
-    # Создаём словарь
+    # Construire le dictionnaire
     users_hash = {}
     combined.each do |user|
       users_hash[user["name"]] = user["id"]
@@ -68,7 +68,7 @@ module TicketTagStats
     tickets.each do |ticket|
       next unless ticket[:created_at]
       date = Date.parse(ticket[:created_at]) rescue next
-      # Найти понедельник недели
+      # Trouver le lundi de la semaine
       week_start = date - (date.wday - 1) % 7
       week_start_str = week_start.strftime("%d-%m-%Y")
       all_week_starts << week_start_str unless all_week_starts.include?(week_start_str)
@@ -121,15 +121,20 @@ end
 if __FILE__ == $0
   puts "Starting test"
 
-  # === Test data ===
-  email     = 'vspirine@mesvaccins.net/token'
-  api_token = 'ClQtC37P864RCDzl8wmUpSFxb6IF06wnWYfgmOd5'
-  subdomain = 'mesvaccinshelp'
+  email     = ENV['ZENDESK_EMAIL']
+  api_token = ENV['ZENDESK_API_TOKEN']
+  subdomain = ENV['ZENDESK_SUBDOMAIN']
 
-  # === getting all admins + agents ===
+  if [email, api_token, subdomain].any? { |v| v.nil? || v.strip.empty? }
+    warn "⚠️ Variables d'environnement manquantes : ZENDESK_EMAIL, ZENDESK_API_TOKEN, ZENDESK_SUBDOMAIN"
+    exit 1
+  end
+
+  add_suffix = ENV.fetch('ZENDESK_ADD_TOKEN_SUFFIX', 'true') != 'false'
+  email = add_suffix && !email.end_with?('/token') ? "#{email}/token" : email
+
   result = ZendeskAPI.get_agents_and_admins(subdomain, email, api_token)
 
-  # === Resultats ===
   puts "\nTotal staff: #{result.size}"
   puts result
 end

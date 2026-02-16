@@ -1,25 +1,38 @@
 # embedding.rb
 
-# utilisé le modèle bge-m3 pour générer des embeddings pour les commentaires de tickets via l'API Ollama
-# Assurez-vous de lancer le serveur Ollama avec le modèle chargé :
-# ollama serve --model bge-m3
+# Génération d'embeddings via Ollama local.
+# IMPORTANT : modèle local pour vectorisation = OLLAMA_EMBED_MODEL (ex: mxbai-embed-large)
 
 require 'httparty'
 require 'json'
 require 'thread'
+require_relative 'config'
 
-def get_embedding(text, model = "bge-m3")
-  url = "http://localhost:11434/api/embeddings"
+def get_embedding(text, model = AppConfig.ollama_embed_model, base_url = AppConfig.ollama_base_url)
+  url = "#{base_url}/api/embeddings"
   payload = { model: model, prompt: text }
-  puts "📩 Envoi du texte au modèle #{model} : '#{text[0..100]}...'"
+
+  puts "📩 Envoi au modèle d'embeddings local #{model} : '#{text.to_s[0..100]}...'"
   response = HTTParty.post(url, body: payload.to_json, headers: { 'Content-Type' => 'application/json' })
+
+  unless response.code == 200
+    puts "❌ Erreur Ollama embeddings (HTTP #{response.code})"
+    return nil
+  end
+
   data = JSON.parse(response.body)
   embedding = data['embedding'] if data.key?('embedding')
   puts "✅ Embedding : #{embedding ? "#{embedding.size}D vecteur" : 'nil'}"
   embedding
+rescue JSON::ParserError => e
+  puts "❌ Réponse embeddings invalide : #{e.message}"
+  nil
+rescue => e
+  puts "❌ Erreur embeddings : #{e.class} - #{e.message}"
+  nil
 end
 
-def generate_embeddings_with_tickets(documents, tickets, model = "bge-m3", thread_count = 8)
+def generate_embeddings_with_tickets(documents, tickets, model = AppConfig.ollama_embed_model, thread_count = AppConfig.embedding_threads, output_file = AppConfig.embeddings_output, max_retries = 3)
   queue = Queue.new
   mutex = Mutex.new
   results = []
@@ -28,37 +41,33 @@ def generate_embeddings_with_tickets(documents, tickets, model = "bge-m3", threa
 
   workers = thread_count.times.map do
     Thread.new do
-      while idx = (queue.pop(true) rescue nil)
-        text   = documents[idx]
+      while (idx = (queue.pop(true) rescue nil))
+        text   = documents[idx].to_s
         ticket = tickets[idx]
-        embedding = nil
 
-        loop do
+        embedding = nil
+        retries = 0
+        while embedding.nil? && retries < max_retries
           embedding = get_embedding(text, model)
           break if embedding
-          puts "⚠️ Embedding vide, nouvelle tentative pour le ticket #{ticket[:nice_id]}"
-          sleep 0.5
+          retries += 1
+          puts "⚠️ Embedding vide, tentative #{retries}/#{max_retries} pour le ticket #{ticket[:nice_id]}"
+          sleep 0.4
         end
+
+        next unless embedding
 
         entry = { nice_id: ticket[:nice_id], vector: embedding }
         mutex.synchronize { results << entry }
         puts "✅ Embedding généré pour le ticket #{ticket[:nice_id]} (#{results.size}/#{documents.size})"
-        sleep 0.1
       end
     end
   end
 
   workers.each(&:join)
 
-  File.open("embeddings.json", "w") do |file|
-    file.puts("[")
-    results.each_with_index do |res, i|
-      line = JSON.generate(res)
-      comma = i < results.size - 1 ? "," : ""
-      file.puts("#{line}#{comma}")
-    end
-    file.puts("]")
-  end
+  File.write(output_file, JSON.pretty_generate(results))
+  puts "💾 Embeddings sauvegardés dans #{output_file}"
 
   results
 end
