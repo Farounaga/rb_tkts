@@ -3,8 +3,6 @@ require_relative 'config'
 require_relative 'xml_handler'
 require_relative 'embedding'
 require_relative 'clusterer'
-require_relative 'clustering_metrics'
-require_relative 'similarity'
 require_relative 'visualisation'
 
 file_path = AppConfig.tickets_xml_path
@@ -45,21 +43,6 @@ if AppConfig.run_clustering?
   run_clustering
 else
   puts '⏭️ Étape clustering désactivée (RUN_CLUSTERING=false)'
-end
-
-
-if AppConfig.run_clustering_metrics?
-  puts '📏 Calcul des métriques de qualité du clustering (elbow + silhouette)...'
-  evaluate_clustering_metrics
-else
-  puts '⏭️ Métriques clustering désactivées (RUN_CLUSTERING_METRICS=false)'
-end
-
-if AppConfig.run_similarity?
-  puts '🔎 Calcul des tickets similaires (cosinus)...'
-  generate_similarity_report
-else
-  puts '⏭️ Similarité désactivée (RUN_SIMILARITY=false)'
 end
 
 Visualiser.generate_html_report(tickets, AppConfig.html_report_output)
