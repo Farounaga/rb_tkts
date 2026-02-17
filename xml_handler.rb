@@ -79,6 +79,10 @@ def extract_ticket(ticket_node)
 end
 
 def load_tickets_from_xml(file_path)
+  unless File.exist?(file_path)
+    raise Errno::ENOENT, "Fichier XML introuvable: #{file_path}. Verifiez TICKETS_XML_PATH dans .env (chemin absolu ou relatif au dossier du projet)."
+  end
+
   xml = Nokogiri::XML(File.read(file_path))
   xml.xpath("//ticket").map do |ticket_node|
     extract_ticket(ticket_node)

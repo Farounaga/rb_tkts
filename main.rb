@@ -7,9 +7,18 @@ require_relative 'clustering_metrics'
 require_relative 'similarity'
 require_relative 'visualisation'
 
-file_path = AppConfig.tickets_xml_path
+raw_file_path = AppConfig.tickets_xml_path
+file_path = File.expand_path(raw_file_path, __dir__)
+puts "📂 Chargement XML: TICKETS_XML_PATH=#{raw_file_path}"
+puts "📍 Chemin résolu: #{file_path}"
 tickets = load_tickets_from_xml(file_path)
 puts "Importé #{tickets.size} tickets depuis #{file_path}"
+
+if AppConfig.max_tickets
+  puts "🧪 Mode test actif : limitation aux #{AppConfig.max_tickets} premiers tickets (MAX_TICKETS)"
+  tickets = tickets.first(AppConfig.max_tickets)
+  puts "📦 Tickets conservés pour ce run : #{tickets.size}"
+end
 
 first_ticket = tickets.first
 if first_ticket && first_ticket[:comments].any?
@@ -34,7 +43,7 @@ puts "🧠 Modèle local d'embeddings : #{AppConfig.ollama_embed_model}"
 puts "🧾 Modèle local de topics : #{AppConfig.ollama_llm_model}"
 
 if AppConfig.run_embeddings?
-  puts "🧠 Génération des embeddings pour #{documents.size} tickets..."
+  puts "🧠 Génération des embeddings pour #{documents.size} tickets (threads=#{AppConfig.embedding_threads}, read_timeout=#{AppConfig.ollama_read_timeout}s)..."
   generate_embeddings_with_tickets(documents, tickets)
 else
   puts '⏭️ Étape embeddings désactivée (RUN_EMBEDDINGS=false)'

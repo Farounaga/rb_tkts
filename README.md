@@ -82,7 +82,15 @@ Cette séparation est volontaire :
 Variables utiles :
 - `RUN_EMBEDDINGS=true|false`
 - `RUN_CLUSTERING=true|false`
-- `EMBEDDING_THREADS=8`
+- `EMBEDDING_THREADS=4`
+- `MAX_TICKETS=300` (optionnel, limite le run à N tickets pour test rapide)
+- `OLLAMA_READ_TIMEOUT=180`
+- `OLLAMA_OPEN_TIMEOUT=5`
+- `OLLAMA_RETRY_BASE_DELAY=0.5`
+- `TOPIC_OPEN_TIMEOUT=5`
+- `TOPIC_READ_TIMEOUT=180`
+- `TOPIC_MAX_RETRIES=3`
+- `TOPIC_RETRY_BASE_DELAY=0.5`
 
 
 ## Qualité de clustering et similarité
