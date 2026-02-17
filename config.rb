@@ -66,7 +66,30 @@ module AppConfig
   end
 
   def embedding_threads
-    ENV.fetch('EMBEDDING_THREADS', '8').to_i
+    ENV.fetch('EMBEDDING_THREADS', '4').to_i
+  end
+
+  def ollama_open_timeout
+    ENV.fetch('OLLAMA_OPEN_TIMEOUT', '5').to_i
+  end
+
+  def ollama_read_timeout
+    ENV.fetch('OLLAMA_READ_TIMEOUT', '180').to_i
+  end
+
+  def ollama_retry_base_delay
+    ENV.fetch('OLLAMA_RETRY_BASE_DELAY', '0.5').to_f
+  end
+
+
+  def max_tickets
+    value = ENV.fetch('MAX_TICKETS', '').to_s.strip
+    return nil if value.empty?
+
+    limit = value.to_i
+    return nil if limit <= 0
+
+    limit
   end
 
   def run_embeddings?
