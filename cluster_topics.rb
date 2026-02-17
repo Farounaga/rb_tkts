@@ -3,9 +3,49 @@ require 'net/http'
 require 'uri'
 require_relative 'config'
 
+def format_topic_seconds(seconds)
+  total = seconds.to_i
+  minutes = total / 60
+  secs = total % 60
+  minutes.positive? ? format('%02dm %02ds', minutes, secs) : format('%02ds', secs)
+end
+
+def request_cluster_topic(prompt, model:, base_url:, open_timeout:, read_timeout:, max_retries:, retry_base_delay:)
+  url = URI("#{base_url}/api/generate")
+  attempts = 0
+
+  while attempts < max_retries
+    attempts += 1
+
+    begin
+      http = Net::HTTP.new(url.host, url.port)
+      http.open_timeout = open_timeout
+      http.read_timeout = read_timeout
+
+      request = Net::HTTP::Post.new(url.request_uri, { 'Content-Type' => 'application/json' })
+      request.body = { model: model, prompt: prompt, stream: false }.to_json
+
+      response = http.request(request)
+      return response if response.code == '200'
+
+      raise "HTTP #{response.code}" if attempts >= max_retries
+
+      delay = retry_base_delay * (2**(attempts - 1))
+      puts "⚠️ Topic HTTP #{response.code}, tentative #{attempts}/#{max_retries} (pause #{format('%.1f', delay)}s)"
+      sleep delay
+    rescue Net::ReadTimeout, Net::OpenTimeout => e
+      raise if attempts >= max_retries
+
+      delay = retry_base_delay * (2**(attempts - 1))
+      puts "⚠️ Timeout topic: #{e.class} - tentative #{attempts}/#{max_retries} (pause #{format('%.1f', delay)}s)"
+      sleep delay
+    end
+  end
+end
+
 # Génère des titres de topics de clusters via LLM local (Ollama)
 # IMPORTANT : modèle local pour topics = OLLAMA_LLM_MODEL (ex: llama3:instruct)
-def generate_cluster_topics(clusters, tickets, output_path: AppConfig.cluster_topics_output, sample_size: 10, comments_per_cluster: 5, model: AppConfig.ollama_llm_model, base_url: AppConfig.ollama_base_url)
+def generate_cluster_topics(clusters, tickets, output_path: AppConfig.cluster_topics_output, sample_size: 10, comments_per_cluster: 5, model: AppConfig.ollama_llm_model, base_url: AppConfig.ollama_base_url, open_timeout: AppConfig.topic_open_timeout, read_timeout: AppConfig.topic_read_timeout, max_retries: AppConfig.topic_max_retries, retry_base_delay: AppConfig.topic_retry_base_delay)
   cluster_to_ids = Hash.new { |h, k| h[k] = [] }
 
   case clusters
@@ -19,6 +59,11 @@ def generate_cluster_topics(clusters, tickets, output_path: AppConfig.cluster_to
   end
 
   topics = {}
+  started_at = Process.clock_gettime(Process::CLOCK_MONOTONIC)
+  processed = 0
+  cluster_total = cluster_to_ids.size
+
+  puts "🚀 Topics clusters: #{cluster_total} cluster(s), model=#{model}, read_timeout=#{read_timeout}s, retries=#{max_retries}"
 
   cluster_to_ids.each do |cluster_id, ids|
     puts "🌀 Cluster #{cluster_id}..."
@@ -58,11 +103,14 @@ def generate_cluster_topics(clusters, tickets, output_path: AppConfig.cluster_to
       - répondre uniquement par le titre
     PROMPT
 
-    url = URI("#{base_url}/api/generate")
-    response = Net::HTTP.post(
-      url,
-      { model: model, prompt: prompt, stream: false }.to_json,
-      { 'Content-Type' => 'application/json' }
+    response = request_cluster_topic(
+      prompt,
+      model: model,
+      base_url: base_url,
+      open_timeout: open_timeout,
+      read_timeout: read_timeout,
+      max_retries: max_retries,
+      retry_base_delay: retry_base_delay
     )
 
     if response.code == '200'
@@ -81,10 +129,19 @@ def generate_cluster_topics(clusters, tickets, output_path: AppConfig.cluster_to
   rescue => e
     puts "❌ Erreur topic cluster #{cluster_id}: #{e.class} - #{e.message}"
     topics[cluster_id] = nil
+  ensure
+    processed += 1
+    elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at
+    rate = processed / [elapsed, 0.001].max
+    remaining = cluster_total - processed
+    eta = remaining / [rate, 0.001].max
+    puts format("📊 Topics progression: %<processed>d/%<total>d | vitesse=%<rate>.2f cluster/s | elapsed=%<elapsed>s | ETA=%<eta>s", processed: processed, total: cluster_total, rate: rate, elapsed: format_topic_seconds(elapsed), eta: format_topic_seconds(eta))
   end
 
   File.write(output_path, JSON.pretty_generate(topics))
+  total_elapsed = Process.clock_gettime(Process::CLOCK_MONOTONIC) - started_at
   puts "📂 Résultats des topics enregistrés dans #{output_path}"
+  puts "🏁 Topics clusters terminés en #{format_topic_seconds(total_elapsed)}"
   topics
 end
 

@@ -82,6 +82,23 @@ module AppConfig
   end
 
 
+
+  def topic_open_timeout
+    ENV.fetch('TOPIC_OPEN_TIMEOUT', ENV.fetch('OLLAMA_OPEN_TIMEOUT', '5')).to_i
+  end
+
+  def topic_read_timeout
+    ENV.fetch('TOPIC_READ_TIMEOUT', ENV.fetch('OLLAMA_READ_TIMEOUT', '180')).to_i
+  end
+
+  def topic_max_retries
+    ENV.fetch('TOPIC_MAX_RETRIES', '3').to_i
+  end
+
+  def topic_retry_base_delay
+    ENV.fetch('TOPIC_RETRY_BASE_DELAY', ENV.fetch('OLLAMA_RETRY_BASE_DELAY', '0.5')).to_f
+  end
+
   def max_tickets
     value = ENV.fetch('MAX_TICKETS', '').to_s.strip
     return nil if value.empty?

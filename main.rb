@@ -7,7 +7,10 @@ require_relative 'clustering_metrics'
 require_relative 'similarity'
 require_relative 'visualisation'
 
-file_path = AppConfig.tickets_xml_path
+raw_file_path = AppConfig.tickets_xml_path
+file_path = File.expand_path(raw_file_path, __dir__)
+puts "📂 Chargement XML: TICKETS_XML_PATH=#{raw_file_path}"
+puts "📍 Chemin résolu: #{file_path}"
 tickets = load_tickets_from_xml(file_path)
 puts "Importé #{tickets.size} tickets depuis #{file_path}"
 
