@@ -1,6 +1,10 @@
 # clusterer.rb
 
 require 'json'
+require_relative 'config'
+require_relative 'xml_handler'
+require_relative 'cluster_topics'
+require_relative 'ml_utils'
 require 'rumale'
 require 'numo/narray'
 require_relative 'config'
@@ -11,6 +15,15 @@ def run_clustering(input_file = AppConfig.embeddings_output, output_file = AppCo
   puts "🧠 Chargement des embeddings depuis #{input_file}..."
   data = JSON.parse(File.read(input_file))
 
+  vectors = data.map { |e| e['vector'].map(&:to_f) }
+  nice_ids = data.map { |e| e['nice_id'] }
+
+  puts '⚙️ Normalisation des données...'
+  scaled_vectors, = MlUtils.standard_scale(vectors)
+
+  puts "🔄 Lancement de KMeans (#{k} clusters)..."
+  km = MlUtils.kmeans(scaled_vectors, k, seed: 7)
+  labels = km[:labels]
   vectors_list = data.map { |e| e['vector'] }
   nice_ids     = data.map { |e| e['nice_id'] }
 

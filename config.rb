@@ -35,6 +35,14 @@ module AppConfig
     ENV.fetch('CLUSTER_TOPICS_OUTPUT', 'cluster_topics.json')
   end
 
+  def similar_tickets_output
+    ENV.fetch('SIMILAR_TICKETS_OUTPUT', 'similar_tickets.json')
+  end
+
+  def clustering_metrics_output
+    ENV.fetch('CLUSTERING_METRICS_OUTPUT', 'clustering_metrics.json')
+  end
+
   def html_report_output
     ENV.fetch('HTML_REPORT_OUTPUT', 'output/visualisation.html')
   end
@@ -67,5 +75,21 @@ module AppConfig
 
   def run_clustering?
     ENV.fetch('RUN_CLUSTERING', 'true') == 'true'
+  end
+
+  def run_similarity?
+    ENV.fetch('RUN_SIMILARITY', 'true') == 'true'
+  end
+
+  def run_clustering_metrics?
+    ENV.fetch('RUN_CLUSTERING_METRICS', 'true') == 'true'
+  end
+
+  def similarity_top_k
+    ENV.fetch('SIMILARITY_TOP_K', '5').to_i
+  end
+
+  def similarity_threshold
+    ENV.fetch('SIMILARITY_THRESHOLD', '0.80').to_f
   end
 end

@@ -83,3 +83,82 @@ Variables utiles :
 - `RUN_EMBEDDINGS=true|false`
 - `RUN_CLUSTERING=true|false`
 - `EMBEDDING_THREADS=8`
+
+
+## Qualité de clustering et similarité
+
+Le MVP inclut désormais des sorties mesurables :
+- `clustering_metrics.json` :
+  - courbe elbow (inertie selon `k`),
+  - score silhouette pour `KMEANS_K`.
+- `similar_tickets.json` : top-k tickets les plus proches par similarité cosinus,
+  avec marquage `probable_duplicate` au-dessus d'un seuil configurable.
+
+Variables associées (ENV) :
+- `RUN_CLUSTERING_METRICS=true|false`
+- `RUN_SIMILARITY=true|false`
+- `SIMILARITY_TOP_K` (défaut 5)
+- `SIMILARITY_THRESHOLD` (défaut 0.80)
+
+
+Explication pédagogique des métriques : `docs/metrics_expliquees.md`.
+
+
+## Installation (Windows / macOS / Linux)
+
+1. Installer Ruby (3.1+).  
+2. Installer Bundler si nécessaire :
+   ```bash
+   gem install bundler
+   ```
+3. Installer les dépendances du projet :
+   ```bash
+   bundle install
+   ```
+4. Copier le fichier d'environnement :
+   ```bash
+   cp .env.example .env
+   ```
+   Sous PowerShell :
+   ```powershell
+   Copy-Item .env.example .env
+   ```
+5. Vérifier Ollama local + modèles :
+   ```bash
+   ollama pull mxbai-embed-large
+   ollama pull llama3:instruct
+   ollama serve
+   ```
+6. Lancer le projet :
+   ```bash
+   bundle exec ruby main.rb
+   ```
+
+Optionnel (diagnostic rapide):
+```bash
+bundle exec ruby bin/check_env.rb
+```
+
+### Erreur fréquente : `cannot load such file -- httparty`
+
+Cette erreur signifie que les gems Ruby ne sont pas installées dans l'environnement courant.
+Résolution :
+```bash
+gem install bundler
+bundle install
+bundle exec ruby main.rb
+```
+
+### Note Windows Ruby 3.4
+
+Le pipeline de clustering/similarité a été converti en implémentation Ruby pure
+(pas de dépendances natives `numo`/`rumale`).
+Si `bundle install` échoue encore, vérifiez surtout l'accès réseau à rubygems.org
+et relancez:
+
+```powershell
+bundle config set force_ruby_platform true
+bundle install
+bundle exec ruby bin/check_env.rb
+bundle exec ruby main.rb
+```
