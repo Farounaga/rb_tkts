@@ -2,6 +2,7 @@
 # Vérifie la présence des dépendances Ruby et variables clés.
 
 required_gems = %w[dotenv httparty nokogiri]
+required_gems = %w[dotenv httparty nokogiri numo/narray rumale]
 missing = []
 
 required_gems.each do |lib|
