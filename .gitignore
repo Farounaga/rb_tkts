@@ -3,3 +3,5 @@ tickets.xml
 clusters.json
 embeddings.json
 /output
+*.json
+*.xml
