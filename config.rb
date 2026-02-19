@@ -49,12 +49,12 @@ module AppConfig
 
   # IMPORTANT : modèle local pour vectorisation
   def ollama_embed_model
-    ENV.fetch('OLLAMA_EMBED_MODEL', 'mxbai-embed-large')
+    ENV.fetch('OLLAMA_EMBED_MODEL', 'nomic-embed-text-v2-moe')
   end
 
   # IMPORTANT : modèle local pour nommage/résumé des topics
   def ollama_llm_model
-    ENV.fetch('OLLAMA_LLM_MODEL', 'llama3:instruct')
+    ENV.fetch('OLLAMA_LLM_MODEL', 'llama3.2:1b-instruct')
   end
 
   def ollama_base_url
@@ -123,6 +123,15 @@ module AppConfig
 
   def topic_retry_base_delay
     ENV.fetch('TOPIC_RETRY_BASE_DELAY', ENV.fetch('OLLAMA_RETRY_BASE_DELAY', '0.5')).to_f
+  end
+
+
+  def topic_num_predict
+    ENV.fetch('TOPIC_NUM_PREDICT', '32').to_i
+  end
+
+  def topic_temperature
+    ENV.fetch('TOPIC_TEMPERATURE', '0.2').to_f
   end
 
   def max_tickets

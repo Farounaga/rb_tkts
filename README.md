@@ -40,8 +40,8 @@ Priorités principales :
 - Ruby >= 3.3.10 (voir `Gemfile`)
 - Ollama (local) — si vous ne connaissez pas: https://ollama.com/
 - Modèles :
-  - embeddings : `mxbai-embed-large` (ou `bge-m3` en compatibilité)
-  - résumé : `llama3:instruct`
+  - embeddings : `nomic-embed-text-v2-moe`
+  - résumé (rapide/recommandé) : `llama3.2:1b-instruct`
 
 ## Sécurité
 
@@ -70,8 +70,8 @@ Priorités principales :
 ## IA locale (point clé du projet)
 
 Le projet s'appuie sur **deux modèles locaux Ollama** :
-- **Modèle d'embeddings** (`OLLAMA_EMBED_MODEL`, recommandé: `mxbai-embed-large`) pour la vectorisation sémantique des tickets.
-- **Modèle LLM de topics** (`OLLAMA_LLM_MODEL`, recommandé: `llama3:instruct`) pour générer des titres de clusters compréhensibles par les équipes métier.
+- **Modèle d'embeddings** (`OLLAMA_EMBED_MODEL`, recommandé: `nomic-embed-text-v2-moe`) pour la vectorisation sémantique des tickets.
+- **Modèle LLM de topics** (`OLLAMA_LLM_MODEL`, recommandé: `llama3.2:1b-instruct`) pour générer des titres de clusters compréhensibles par les équipes métier.
 
 Cette séparation est volontaire :
 - modèle A = précision des similarités/clustering,
@@ -115,6 +115,8 @@ Variables utiles :
 - `TOPIC_READ_TIMEOUT=180`
 - `TOPIC_MAX_RETRIES=3`
 - `TOPIC_RETRY_BASE_DELAY=0.5`
+- `TOPIC_NUM_PREDICT=32`
+- `TOPIC_TEMPERATURE=0.2`
 
 
 ## Qualité de clustering et similarité
@@ -134,6 +136,23 @@ Variables associées (ENV) :
 
 
 Explication pédagogique des métriques : `docs/metrics_expliquees.md`.
+
+
+
+
+### Modèles recommandés (rapides)
+
+Pour la génération de titres de clusters, éviter les modèles de raisonnement type `deepseek-r1` (souvent plus lents et parfois verbeux, ex: sortie `<think>`).
+
+Recommandations pratiques :
+- `OLLAMA_LLM_MODEL=llama3.2:1b-instruct` (très rapide, idéal 4GB VRAM)
+- `OLLAMA_LLM_MODEL=qwen2.5:3b-instruct` (souvent rapide et propre pour titres courts)
+- `OLLAMA_EMBED_MODEL=nomic-embed-text-v2-moe` (rapide et adapté machines modestes)
+
+Réglages conseillés pour accélérer les topics :
+- `TOPIC_NUM_PREDICT=32`
+- `TOPIC_TEMPERATURE=0.2`
+- augmenter `TOPIC_READ_TIMEOUT` si machine lente (ex: 240)
 
 
 ## Installation (Windows / macOS / Linux)
