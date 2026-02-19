@@ -10,14 +10,36 @@ def format_topic_seconds(seconds)
   minutes.positive? ? format('%02dm %02ds', minutes, secs) : format('%02ds', secs)
 end
 
+def normalize_topic_words(title, max_words: 10)
+  return nil if title.nil?
+
+  words = title.split(/\s+/).reject(&:empty?)
+  return nil if words.empty?
+
+  words.first(max_words).join(' ')
+end
+
 def clean_topic_title(raw)
   text = raw.to_s
-  text = text.gsub(/<think>.*?<\/think>/m, ' ')
-  text = text.gsub(/<\/?think>/, ' ')
+  text = text.gsub(/<think>.*?<\/think>/mi, ' ')
+  text = text.gsub(/<\/?think>/i, ' ')
   text = text.gsub(/\s+/, ' ').strip
 
-  first_line = text.lines.first.to_s.strip
-  candidate = first_line.empty? ? text : first_line
+  # Retire les préfixes fréquents des petits modèles
+  text = text.sub(/\A\s*(titre\s*court|titre|title|theme|thème)\s*[:\-]\s*/i, '')
+  text = text.sub(/\A\s*(cluster\s*\d+\s*[:\-])\s*/i, '')
+
+  # Retire guillemets/bruit de ponctuation en bordure
+  text = text.gsub(/\A["'“”«»\s]+|["'“”«»\s]+\z/, '')
+  text = text.gsub(/\A[:\-\s]+|[:\-\s]+\z/, '')
+
+  # Garde uniquement la 1re phrase/lignes utile
+  first_sentence = text.split(/[\n\r\.\!\?]/).first.to_s.strip
+  candidate = first_sentence.empty? ? text : first_sentence
+
+  candidate = normalize_topic_words(candidate, max_words: 10)
+  return nil if candidate.nil? || candidate.empty?
+
   candidate[0..120]&.strip
 end
 
@@ -66,7 +88,7 @@ def request_cluster_topic(prompt, model:, base_url:, open_timeout:, read_timeout
 end
 
 # Génère des titres de topics de clusters via LLM local (Ollama)
-# IMPORTANT : modèle local pour topics = OLLAMA_LLM_MODEL (ex: llama3.2:3b-instruct)
+# IMPORTANT : modèle local pour topics = OLLAMA_LLM_MODEL (ex: llama3.2:1b-instruct)
 def generate_cluster_topics(clusters, tickets, output_path: AppConfig.cluster_topics_output, sample_size: 10, comments_per_cluster: 5, model: AppConfig.ollama_llm_model, base_url: AppConfig.ollama_base_url, open_timeout: AppConfig.topic_open_timeout, read_timeout: AppConfig.topic_read_timeout, max_retries: AppConfig.topic_max_retries, retry_base_delay: AppConfig.topic_retry_base_delay)
   cluster_to_ids = Hash.new { |h, k| h[k] = [] }
 
@@ -114,17 +136,24 @@ def generate_cluster_topics(clusters, tickets, output_path: AppConfig.cluster_to
     end
 
     prompt = <<~PROMPT
-      Tâche : proposer un titre court et englobant pour ce cluster de tickets support.
+      Tu es un assistant de classification de tickets support.
+      Ta mission : produire UN TITRE DE CLUSTER.
 
-      Commentaires représentatifs :
+      Données (commentaires représentatifs):
       #{comments.first(comments_per_cluster).join("\n\n")}
 
-      Contraintes :
-      - 10 mots maximum
-      - style clair et opérationnel
-      - NE PAS inclure de raisonnement interne
-      - NE PAS inclure de balises XML/HTML (ex: <think>)
-      - répondre uniquement par le titre
+      Règles obligatoires (STRICT):
+      1) Réponds avec UNE SEULE LIGNE.
+      2) Maximum 10 mots.
+      3) N'ajoute AUCUN préfixe: pas de "Titre:", "Titre court:", "Cluster:".
+      4) N'ajoute AUCUNE explication, aucun texte avant/après.
+      5) N'utilise pas de guillemets.
+      6) N'utilise pas de balises (ex: <think>).
+
+      Exemple de BON format:
+      Problèmes de partage des carnets de vaccination
+
+      Réponse finale (une seule ligne):
     PROMPT
 
     response = request_cluster_topic(

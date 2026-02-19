@@ -138,6 +138,23 @@ Variables associées (ENV) :
 Explication pédagogique des métriques : `docs/metrics_expliquees.md`.
 
 
+## Comment est choisi le nombre de clusters (K)
+
+Actuellement, le clustering utilise une valeur **fixe** `KMEANS_K` (ENV), donc ce n'est pas auto-ajusté dans `run_clustering`.
+
+Pourquoi pas automatique par défaut :
+- stabilité des résultats d'un run à l'autre (plus simple pour comparer),
+- contrôle métier (certaines équipes veulent un nombre de thèmes cible),
+- éviter qu'un choix auto change fortement selon l'échantillon.
+
+Le projet calcule quand même des indicateurs d'aide (`clustering_metrics.json`) :
+- courbe elbow (inertie selon k),
+- silhouette pour le `KMEANS_K` choisi.
+
+Workflow conseillé :
+1. Lancer avec `RUN_CLUSTERING_METRICS=true`.
+2. Regarder la courbe elbow + silhouette.
+3. Ajuster `KMEANS_K` dans `.env` puis relancer.
 
 
 ### Modèles recommandés (rapides)
@@ -176,8 +193,8 @@ Réglages conseillés pour accélérer les topics :
    ```
 5. Optionnel (si vous désactivez l'autostart ou si vous utilisez un serveur Ollama distant) : vérifier Ollama + modèles :
    ```bash
-   ollama pull mxbai-embed-large
-   ollama pull llama3:instruct
+   ollama pull nomic-embed-text-v2-moe
+   ollama pull llama3.2:1b-instruct
    ollama serve
    ```
 6. Lancer le projet :
