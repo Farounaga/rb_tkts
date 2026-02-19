@@ -37,7 +37,7 @@ Priorités principales :
 
 ## Prérequis minimaux
 
-- Ruby 3.1+
+- Ruby >= 3.3.10 (voir `Gemfile`)
 - Ollama (local) — si vous ne connaissez pas: https://ollama.com/
 - Modèles :
   - embeddings : `mxbai-embed-large` (ou `bge-m3` en compatibilité)
@@ -76,11 +76,20 @@ Cette séparation est volontaire :
 ## Exécution rapide
 
 1. Copier `.env.example` en `.env` et renseigner les variables nécessaires.
-2. Exécuter : `ruby main.rb` (le projet peut démarrer Ollama et télécharger les modèles automatiquement).
+2. Lancer : `bundle exec ruby main.rb`
+
+Le bootstrap Ollama automatique s’active **uniquement** si :
+- `OLLAMA_AUTO_START=true`
+- et `OLLAMA_BASE_URL` pointe vers un host local (`localhost`, `127.0.0.1`, `::1`)
+- et au moins une étape Ollama est active (`RUN_EMBEDDINGS=true` ou `RUN_CLUSTERING=true`).
+
+Comportement des modèles :
+- Si `OLLAMA_MODELS` est défini, cette liste est utilisée pour les `ollama pull` automatiques.
+- Sinon, le code utilise `OLLAMA_EMBED_MODEL` et/ou `OLLAMA_LLM_MODEL` selon les étapes activées.
 
 Variables utiles :
-- `OLLAMA_AUTO_START=true|false` (par défaut `true`)
-- `OLLAMA_MODELS=model1,model2` (optionnel, pour forcer la liste des modèles à préparer)
+- `OLLAMA_AUTO_START=true|false` (défaut : `true`)
+- `OLLAMA_MODELS=model1,model2` (optionnel)
 - `OLLAMA_START_TIMEOUT=30`
 - `RUN_EMBEDDINGS=true|false`
 - `RUN_CLUSTERING=true|false`
@@ -116,7 +125,7 @@ Explication pédagogique des métriques : `docs/metrics_expliquees.md`.
 
 ## Installation (Windows / macOS / Linux)
 
-1. Installer Ruby (3.1+).  
+1. Installer Ruby (>= 3.3.10).  
 2. Installer Bundler si nécessaire :
    ```bash
    gem install bundler
@@ -133,7 +142,7 @@ Explication pédagogique des métriques : `docs/metrics_expliquees.md`.
    ```powershell
    Copy-Item .env.example .env
    ```
-5. Optionnel (si vous désactivez l'autostart): vérifier Ollama local + modèles :
+5. Optionnel (si vous désactivez l'autostart ou si vous utilisez un serveur Ollama distant) : vérifier Ollama + modèles :
    ```bash
    ollama pull mxbai-embed-large
    ollama pull llama3:instruct
@@ -161,10 +170,9 @@ bundle exec ruby main.rb
 
 ### Note Windows Ruby 3.4
 
-Le pipeline de clustering/similarité a été converti en implémentation Ruby pure
-(pas de dépendances natives `numo`/`rumale`).
-Si `bundle install` échoue encore, vérifiez surtout l'accès réseau à rubygems.org
-et relancez:
+Le projet utilise des dépendances natives pour la partie ML (`numo-narray`, `rumale`).
+Si `bundle install` échoue sur Windows, vérifiez d'abord les toolchains Ruby/MSYS2,
+l'accès réseau à rubygems.org, puis relancez:
 
 ```powershell
 bundle config set force_ruby_platform true
