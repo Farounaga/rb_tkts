@@ -10,7 +10,40 @@ def format_topic_seconds(seconds)
   minutes.positive? ? format('%02dm %02ds', minutes, secs) : format('%02ds', secs)
 end
 
-def request_cluster_topic(prompt, model:, base_url:, open_timeout:, read_timeout:, max_retries:, retry_base_delay:)
+def normalize_topic_words(title, max_words: 10)
+  return nil if title.nil?
+
+  words = title.split(/\s+/).reject(&:empty?)
+  return nil if words.empty?
+
+  words.first(max_words).join(' ')
+end
+
+def clean_topic_title(raw)
+  text = raw.to_s
+  text = text.gsub(/<think>.*?<\/think>/mi, ' ')
+  text = text.gsub(/<\/?think>/i, ' ')
+  text = text.gsub(/\s+/, ' ').strip
+
+  # Retire les préfixes fréquents des petits modèles
+  text = text.sub(/\A\s*(titre\s*court|titre|title|theme|thème)\s*[:\-]\s*/i, '')
+  text = text.sub(/\A\s*(cluster\s*\d+\s*[:\-])\s*/i, '')
+
+  # Retire guillemets/bruit de ponctuation en bordure
+  text = text.gsub(/\A["'“”«»\s]+|["'“”«»\s]+\z/, '')
+  text = text.gsub(/\A[:\-\s]+|[:\-\s]+\z/, '')
+
+  # Garde uniquement la 1re phrase/lignes utile
+  first_sentence = text.split(/[\n\r\.\!\?]/).first.to_s.strip
+  candidate = first_sentence.empty? ? text : first_sentence
+
+  candidate = normalize_topic_words(candidate, max_words: 10)
+  return nil if candidate.nil? || candidate.empty?
+
+  candidate[0..120]&.strip
+end
+
+def request_cluster_topic(prompt, model:, base_url:, open_timeout:, read_timeout:, max_retries:, retry_base_delay:, num_predict:, temperature:)
   url = URI("#{base_url}/api/generate")
   attempts = 0
 
@@ -23,7 +56,15 @@ def request_cluster_topic(prompt, model:, base_url:, open_timeout:, read_timeout
       http.read_timeout = read_timeout
 
       request = Net::HTTP::Post.new(url.request_uri, { 'Content-Type' => 'application/json' })
-      request.body = { model: model, prompt: prompt, stream: false }.to_json
+      request.body = {
+        model: model,
+        prompt: prompt,
+        stream: false,
+        options: {
+          num_predict: num_predict,
+          temperature: temperature
+        }
+      }.to_json
 
       response = http.request(request)
       return response if response.code == '200'
@@ -39,12 +80,15 @@ def request_cluster_topic(prompt, model:, base_url:, open_timeout:, read_timeout
       delay = retry_base_delay * (2**(attempts - 1))
       puts "⚠️ Timeout topic: #{e.class} - tentative #{attempts}/#{max_retries} (pause #{format('%.1f', delay)}s)"
       sleep delay
+    rescue Interrupt
+      puts '⛔ Interruption utilisateur détectée pendant génération des topics.'
+      raise
     end
   end
 end
 
 # Génère des titres de topics de clusters via LLM local (Ollama)
-# IMPORTANT : modèle local pour topics = OLLAMA_LLM_MODEL (ex: llama3:instruct)
+# IMPORTANT : modèle local pour topics = OLLAMA_LLM_MODEL (ex: llama3.2:1b-instruct)
 def generate_cluster_topics(clusters, tickets, output_path: AppConfig.cluster_topics_output, sample_size: 10, comments_per_cluster: 5, model: AppConfig.ollama_llm_model, base_url: AppConfig.ollama_base_url, open_timeout: AppConfig.topic_open_timeout, read_timeout: AppConfig.topic_read_timeout, max_retries: AppConfig.topic_max_retries, retry_base_delay: AppConfig.topic_retry_base_delay)
   cluster_to_ids = Hash.new { |h, k| h[k] = [] }
 
@@ -63,7 +107,7 @@ def generate_cluster_topics(clusters, tickets, output_path: AppConfig.cluster_to
   processed = 0
   cluster_total = cluster_to_ids.size
 
-  puts "🚀 Topics clusters: #{cluster_total} cluster(s), model=#{model}, read_timeout=#{read_timeout}s, retries=#{max_retries}"
+  puts "🚀 Topics clusters: #{cluster_total} cluster(s), model=#{model}, read_timeout=#{read_timeout}s, retries=#{max_retries}, num_predict=#{AppConfig.topic_num_predict}, temperature=#{AppConfig.topic_temperature}"
 
   cluster_to_ids.each do |cluster_id, ids|
     puts "🌀 Cluster #{cluster_id}..."
@@ -92,15 +136,24 @@ def generate_cluster_topics(clusters, tickets, output_path: AppConfig.cluster_to
     end
 
     prompt = <<~PROMPT
-      Tâche : proposer un titre court et englobant pour ce cluster de tickets support.
+      Tu es un assistant de classification de tickets support.
+      Ta mission : produire UN TITRE DE CLUSTER.
 
-      Commentaires représentatifs :
+      Données (commentaires représentatifs):
       #{comments.first(comments_per_cluster).join("\n\n")}
 
-      Contraintes :
-      - 10 mots maximum
-      - style clair et opérationnel
-      - répondre uniquement par le titre
+      Règles obligatoires (STRICT):
+      1) Réponds avec UNE SEULE LIGNE.
+      2) Maximum 10 mots.
+      3) N'ajoute AUCUN préfixe: pas de "Titre:", "Titre court:", "Cluster:".
+      4) N'ajoute AUCUNE explication, aucun texte avant/après.
+      5) N'utilise pas de guillemets.
+      6) N'utilise pas de balises (ex: <think>).
+
+      Exemple de BON format:
+      Problèmes de partage des carnets de vaccination
+
+      Réponse finale (une seule ligne):
     PROMPT
 
     response = request_cluster_topic(
@@ -110,14 +163,16 @@ def generate_cluster_topics(clusters, tickets, output_path: AppConfig.cluster_to
       open_timeout: open_timeout,
       read_timeout: read_timeout,
       max_retries: max_retries,
-      retry_base_delay: retry_base_delay
+      retry_base_delay: retry_base_delay,
+      num_predict: AppConfig.topic_num_predict,
+      temperature: AppConfig.topic_temperature
     )
 
     if response.code == '200'
       json = JSON.parse(response.body)
       raw = json['response'].to_s.strip
-      title = raw.lines.first.to_s.strip[0..120]
-      topics[cluster_id] = title.empty? ? nil : title
+      title = clean_topic_title(raw)
+      topics[cluster_id] = title.nil? || title.empty? ? nil : title
       puts "✅ Cluster #{cluster_id} : #{topics[cluster_id]}"
     else
       puts "❌ Erreur #{response.code} pour cluster #{cluster_id}"
@@ -126,6 +181,9 @@ def generate_cluster_topics(clusters, tickets, output_path: AppConfig.cluster_to
   rescue JSON::ParserError => e
     puts "❌ Réponse LLM invalide pour cluster #{cluster_id}: #{e.message}"
     topics[cluster_id] = nil
+  rescue Interrupt
+    puts '⛔ Arrêt demandé par utilisateur. Sauvegarde partielle des topics en cours...'
+    break
   rescue => e
     puts "❌ Erreur topic cluster #{cluster_id}: #{e.class} - #{e.message}"
     topics[cluster_id] = nil
