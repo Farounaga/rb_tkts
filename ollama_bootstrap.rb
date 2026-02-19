@@ -12,6 +12,10 @@ module OllamaBootstrap
   @server_pid = nil
   @started_by_bootstrap = false
 
+  def windows?
+    (/mswin|mingw|cygwin/ =~ RUBY_PLATFORM) != nil
+  end
+
   def ensure_ready!(need_llm: true, need_embeddings: true)
     return unless AppConfig.ollama_auto_start?
 
@@ -69,9 +73,17 @@ module OllamaBootstrap
   def terminate_process(pid)
     return unless pid
 
+    if windows?
+      terminate_process_windows(pid)
+      return
+    end
+
     begin
       Process.kill('TERM', pid)
     rescue Errno::ESRCH
+      return
+    rescue Errno::EINVAL
+      terminate_process_windows(pid)
       return
     end
 
@@ -97,7 +109,15 @@ module OllamaBootstrap
       Process.kill('KILL', pid)
     rescue Errno::ESRCH
       nil
+    rescue Errno::EINVAL
+      terminate_process_windows(pid)
     end
+  end
+
+  def terminate_process_windows(pid)
+    # Windows Ruby supporte mal TERM/KILL pour certains process spawnés.
+    # taskkill est la méthode la plus fiable pour arrêter `ollama serve`.
+    system('taskkill', '/PID', pid.to_s, '/T', '/F', out: File::NULL, err: File::NULL)
   end
 
   def pull_missing_models(uri, models)
