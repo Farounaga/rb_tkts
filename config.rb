@@ -61,6 +61,32 @@ module AppConfig
     ENV.fetch('OLLAMA_BASE_URL', 'http://localhost:11434')
   end
 
+
+  def ollama_models
+    ENV.fetch('OLLAMA_MODELS', '')
+       .split(',')
+       .map(&:strip)
+       .reject(&:empty?)
+       .uniq
+  end
+
+  def ollama_auto_start?
+    ENV.fetch('OLLAMA_AUTO_START', 'true') == 'true'
+  end
+
+  def ollama_start_timeout
+    ENV.fetch('OLLAMA_START_TIMEOUT', '30').to_i
+  end
+
+
+  def ollama_auto_stop?
+    ENV.fetch('OLLAMA_AUTO_STOP', 'true') == 'true'
+  end
+
+  def ollama_stop_timeout
+    ENV.fetch('OLLAMA_STOP_TIMEOUT', '10').to_i
+  end
+
   def kmeans_k
     ENV.fetch('KMEANS_K', '10').to_i
   end
