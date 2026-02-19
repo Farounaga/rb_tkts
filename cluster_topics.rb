@@ -10,7 +10,18 @@ def format_topic_seconds(seconds)
   minutes.positive? ? format('%02dm %02ds', minutes, secs) : format('%02ds', secs)
 end
 
-def request_cluster_topic(prompt, model:, base_url:, open_timeout:, read_timeout:, max_retries:, retry_base_delay:)
+def clean_topic_title(raw)
+  text = raw.to_s
+  text = text.gsub(/<think>.*?<\/think>/m, ' ')
+  text = text.gsub(/<\/?think>/, ' ')
+  text = text.gsub(/\s+/, ' ').strip
+
+  first_line = text.lines.first.to_s.strip
+  candidate = first_line.empty? ? text : first_line
+  candidate[0..120]&.strip
+end
+
+def request_cluster_topic(prompt, model:, base_url:, open_timeout:, read_timeout:, max_retries:, retry_base_delay:, num_predict:, temperature:)
   url = URI("#{base_url}/api/generate")
   attempts = 0
 
@@ -23,7 +34,15 @@ def request_cluster_topic(prompt, model:, base_url:, open_timeout:, read_timeout
       http.read_timeout = read_timeout
 
       request = Net::HTTP::Post.new(url.request_uri, { 'Content-Type' => 'application/json' })
-      request.body = { model: model, prompt: prompt, stream: false }.to_json
+      request.body = {
+        model: model,
+        prompt: prompt,
+        stream: false,
+        options: {
+          num_predict: num_predict,
+          temperature: temperature
+        }
+      }.to_json
 
       response = http.request(request)
       return response if response.code == '200'
@@ -39,12 +58,15 @@ def request_cluster_topic(prompt, model:, base_url:, open_timeout:, read_timeout
       delay = retry_base_delay * (2**(attempts - 1))
       puts "⚠️ Timeout topic: #{e.class} - tentative #{attempts}/#{max_retries} (pause #{format('%.1f', delay)}s)"
       sleep delay
+    rescue Interrupt
+      puts '⛔ Interruption utilisateur détectée pendant génération des topics.'
+      raise
     end
   end
 end
 
 # Génère des titres de topics de clusters via LLM local (Ollama)
-# IMPORTANT : modèle local pour topics = OLLAMA_LLM_MODEL (ex: llama3:instruct)
+# IMPORTANT : modèle local pour topics = OLLAMA_LLM_MODEL (ex: llama3.2:3b-instruct)
 def generate_cluster_topics(clusters, tickets, output_path: AppConfig.cluster_topics_output, sample_size: 10, comments_per_cluster: 5, model: AppConfig.ollama_llm_model, base_url: AppConfig.ollama_base_url, open_timeout: AppConfig.topic_open_timeout, read_timeout: AppConfig.topic_read_timeout, max_retries: AppConfig.topic_max_retries, retry_base_delay: AppConfig.topic_retry_base_delay)
   cluster_to_ids = Hash.new { |h, k| h[k] = [] }
 
@@ -63,7 +85,7 @@ def generate_cluster_topics(clusters, tickets, output_path: AppConfig.cluster_to
   processed = 0
   cluster_total = cluster_to_ids.size
 
-  puts "🚀 Topics clusters: #{cluster_total} cluster(s), model=#{model}, read_timeout=#{read_timeout}s, retries=#{max_retries}"
+  puts "🚀 Topics clusters: #{cluster_total} cluster(s), model=#{model}, read_timeout=#{read_timeout}s, retries=#{max_retries}, num_predict=#{AppConfig.topic_num_predict}, temperature=#{AppConfig.topic_temperature}"
 
   cluster_to_ids.each do |cluster_id, ids|
     puts "🌀 Cluster #{cluster_id}..."
@@ -100,6 +122,8 @@ def generate_cluster_topics(clusters, tickets, output_path: AppConfig.cluster_to
       Contraintes :
       - 10 mots maximum
       - style clair et opérationnel
+      - NE PAS inclure de raisonnement interne
+      - NE PAS inclure de balises XML/HTML (ex: <think>)
       - répondre uniquement par le titre
     PROMPT
 
@@ -110,14 +134,16 @@ def generate_cluster_topics(clusters, tickets, output_path: AppConfig.cluster_to
       open_timeout: open_timeout,
       read_timeout: read_timeout,
       max_retries: max_retries,
-      retry_base_delay: retry_base_delay
+      retry_base_delay: retry_base_delay,
+      num_predict: AppConfig.topic_num_predict,
+      temperature: AppConfig.topic_temperature
     )
 
     if response.code == '200'
       json = JSON.parse(response.body)
       raw = json['response'].to_s.strip
-      title = raw.lines.first.to_s.strip[0..120]
-      topics[cluster_id] = title.empty? ? nil : title
+      title = clean_topic_title(raw)
+      topics[cluster_id] = title.nil? || title.empty? ? nil : title
       puts "✅ Cluster #{cluster_id} : #{topics[cluster_id]}"
     else
       puts "❌ Erreur #{response.code} pour cluster #{cluster_id}"
@@ -126,6 +152,9 @@ def generate_cluster_topics(clusters, tickets, output_path: AppConfig.cluster_to
   rescue JSON::ParserError => e
     puts "❌ Réponse LLM invalide pour cluster #{cluster_id}: #{e.message}"
     topics[cluster_id] = nil
+  rescue Interrupt
+    puts '⛔ Arrêt demandé par utilisateur. Sauvegarde partielle des topics en cours...'
+    break
   rescue => e
     puts "❌ Erreur topic cluster #{cluster_id}: #{e.class} - #{e.message}"
     topics[cluster_id] = nil
