@@ -78,6 +78,15 @@ module AppConfig
     ENV.fetch('OLLAMA_START_TIMEOUT', '30').to_i
   end
 
+
+  def ollama_auto_stop?
+    ENV.fetch('OLLAMA_AUTO_STOP', 'true') == 'true'
+  end
+
+  def ollama_stop_timeout
+    ENV.fetch('OLLAMA_STOP_TIMEOUT', '10').to_i
+  end
+
   def kmeans_k
     ENV.fetch('KMEANS_K', '10').to_i
   end

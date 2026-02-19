@@ -48,6 +48,10 @@ Priorités principales :
 - Ne stockez jamais de token API dans le code ni dans git.
 - Utilisez `.env` (voir `.env.example`).
 
+## Comprendre le fonctionnement du code
+
+- Schéma d'exécution et dépendances: [`docs/code_flow.md`](docs/code_flow.md)
+
 ## Structure actuelle
 
 - `xml_handler.rb` — parsing XML vers structure ticket.
@@ -87,10 +91,16 @@ Comportement des modèles :
 - Si `OLLAMA_MODELS` est défini, cette liste est utilisée pour les `ollama pull` automatiques.
 - Sinon, le code utilise `OLLAMA_EMBED_MODEL` et/ou `OLLAMA_LLM_MODEL` selon les étapes activées.
 
+Arrêt automatique en fin de run :
+- Si le script a lui-même lancé `ollama serve`, il l'arrête à la fin (`OLLAMA_AUTO_STOP=true`).
+- Si Ollama tournait déjà avant le run, le script ne l'arrête pas.
+
 Variables utiles :
 - `OLLAMA_AUTO_START=true|false` (défaut : `true`)
 - `OLLAMA_MODELS=model1,model2` (optionnel)
 - `OLLAMA_START_TIMEOUT=30`
+- `OLLAMA_AUTO_STOP=true|false` (défaut : `true`)
+- `OLLAMA_STOP_TIMEOUT=10`
 - `RUN_EMBEDDINGS=true|false`
 - `RUN_CLUSTERING=true|false`
 - `EMBEDDING_THREADS=4`

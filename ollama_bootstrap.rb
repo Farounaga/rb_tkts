@@ -9,6 +9,9 @@ module OllamaBootstrap
 
   LOCAL_OLLAMA_HOSTS = ['localhost', '127.0.0.1', '::1'].freeze
 
+  @server_pid = nil
+  @started_by_bootstrap = false
+
   def ensure_ready!(need_llm: true, need_embeddings: true)
     return unless AppConfig.ollama_auto_start?
 
@@ -20,6 +23,16 @@ module OllamaBootstrap
 
     start_server_if_needed(uri)
     pull_missing_models(uri, required_models(need_llm: need_llm, need_embeddings: need_embeddings))
+  end
+
+  def shutdown_if_started!
+    return unless @started_by_bootstrap
+    return unless AppConfig.ollama_auto_stop?
+
+    puts '🛑 Arrêt automatique de Ollama (process lancé par ce run)...'
+    terminate_process(@server_pid)
+    @started_by_bootstrap = false
+    @server_pid = nil
   end
 
   def required_models(need_llm:, need_embeddings:)
@@ -36,7 +49,9 @@ module OllamaBootstrap
     return if server_up?(uri)
 
     puts '🚀 Ollama non détecté, démarrage automatique de `ollama serve`...'
-    spawn('ollama', 'serve', out: $stdout, err: $stderr)
+    pid = spawn('ollama', 'serve', out: $stdout, err: $stderr)
+    @server_pid = pid
+    @started_by_bootstrap = true
 
     deadline = Time.now + AppConfig.ollama_start_timeout
     until Time.now > deadline
@@ -45,7 +60,44 @@ module OllamaBootstrap
       sleep 1
     end
 
+    terminate_process(pid)
+    @server_pid = nil
+    @started_by_bootstrap = false
     raise 'Impossible de démarrer Ollama automatiquement. Lancez `ollama serve` manuellement.'
+  end
+
+  def terminate_process(pid)
+    return unless pid
+
+    begin
+      Process.kill('TERM', pid)
+    rescue Errno::ESRCH
+      return
+    end
+
+    deadline = Time.now + AppConfig.ollama_stop_timeout
+    loop do
+      begin
+        Process.waitpid(pid, Process::WNOHANG)
+      rescue Errno::ECHILD
+        return
+      end
+
+      begin
+        Process.getpgid(pid)
+      rescue Errno::ESRCH
+        return
+      end
+
+      break if Time.now > deadline
+      sleep 0.2
+    end
+
+    begin
+      Process.kill('KILL', pid)
+    rescue Errno::ESRCH
+      nil
+    end
   end
 
   def pull_missing_models(uri, models)
