@@ -38,7 +38,7 @@ Priorités principales :
 ## Prérequis minimaux
 
 - Ruby 3.1+
-- Ollama (local)
+- Ollama (local) — si vous ne connaissez pas: https://ollama.com/
 - Modèles :
   - embeddings : `mxbai-embed-large` (ou `bge-m3` en compatibilité)
   - résumé : `llama3:instruct`
@@ -76,10 +76,12 @@ Cette séparation est volontaire :
 ## Exécution rapide
 
 1. Copier `.env.example` en `.env` et renseigner les variables nécessaires.
-2. Lancer Ollama localement avec les modèles chargés.
-3. Exécuter : `ruby main.rb`
+2. Exécuter : `ruby main.rb` (le projet peut démarrer Ollama et télécharger les modèles automatiquement).
 
 Variables utiles :
+- `OLLAMA_AUTO_START=true|false` (par défaut `true`)
+- `OLLAMA_MODELS=model1,model2` (optionnel, pour forcer la liste des modèles à préparer)
+- `OLLAMA_START_TIMEOUT=30`
 - `RUN_EMBEDDINGS=true|false`
 - `RUN_CLUSTERING=true|false`
 - `EMBEDDING_THREADS=4`
@@ -131,7 +133,7 @@ Explication pédagogique des métriques : `docs/metrics_expliquees.md`.
    ```powershell
    Copy-Item .env.example .env
    ```
-5. Vérifier Ollama local + modèles :
+5. Optionnel (si vous désactivez l'autostart): vérifier Ollama local + modèles :
    ```bash
    ollama pull mxbai-embed-large
    ollama pull llama3:instruct
