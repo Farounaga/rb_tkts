@@ -6,6 +6,7 @@ require_relative 'clusterer'
 require_relative 'clustering_metrics'
 require_relative 'similarity'
 require_relative 'visualisation'
+require_relative 'ollama_bootstrap'
 
 raw_file_path = AppConfig.tickets_xml_path
 file_path = File.expand_path(raw_file_path, __dir__)
@@ -41,6 +42,10 @@ end
 
 puts "🧠 Modèle local d'embeddings : #{AppConfig.ollama_embed_model}"
 puts "🧾 Modèle local de topics : #{AppConfig.ollama_llm_model}"
+
+if AppConfig.run_embeddings? || AppConfig.run_clustering?
+  OllamaBootstrap.ensure_ready!(need_llm: AppConfig.run_clustering?, need_embeddings: AppConfig.run_embeddings?)
+end
 
 if AppConfig.run_embeddings?
   puts "🧠 Génération des embeddings pour #{documents.size} tickets (threads=#{AppConfig.embedding_threads}, read_timeout=#{AppConfig.ollama_read_timeout}s)..."
