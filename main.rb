@@ -13,14 +13,12 @@ begin
   file_path = File.expand_path(raw_file_path, __dir__)
   puts "📂 Chargement XML: TICKETS_XML_PATH=#{raw_file_path}"
   puts "📍 Chemin résolu: #{file_path}"
-  tickets = load_tickets_from_xml(file_path)
-  puts "Importé #{tickets.size} tickets depuis #{file_path}"
-
   if AppConfig.max_tickets
-    puts "🧪 Mode test actif : limitation aux #{AppConfig.max_tickets} premiers tickets (MAX_TICKETS)"
-    tickets = tickets.first(AppConfig.max_tickets)
-    puts "📦 Tickets conservés pour ce run : #{tickets.size}"
+    puts "🧪 Mode streaming XML + limite active : MAX_TICKETS=#{AppConfig.max_tickets}"
   end
+
+  tickets = load_tickets_from_xml(file_path, max_tickets: AppConfig.max_tickets)
+  puts "Importé #{tickets.size} tickets depuis #{file_path}"
 
   first_ticket = tickets.first
   if first_ticket && first_ticket[:comments].any?

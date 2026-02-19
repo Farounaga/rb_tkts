@@ -54,7 +54,7 @@ Priorités principales :
 
 ## Structure actuelle
 
-- `xml_handler.rb` — parsing XML vers structure ticket.
+- `xml_handler.rb` — parsing XML streaming + schéma configurable (mapping de champs/collections).
 - `embedding.rb` — génération des embeddings.
 - `clusterer.rb` — clustering KMeans.
 - `cluster_topics.rb` — thèmes LLM par cluster.
@@ -82,6 +82,9 @@ Cette séparation est volontaire :
 1. Copier `.env.example` en `.env` et renseigner les variables nécessaires.
 2. Lancer : `bundle exec ruby main.rb`
 
+Le chargement XML est fait en **streaming** (Reader Nokogiri), donc le fichier complet n'est plus chargé d'un coup en mémoire.
+Le parser est aussi **piloté par schéma** (mapping Ruby), ce qui facilite l'adaptation à d'autres structures XML.
+
 Le bootstrap Ollama automatique s’active **uniquement** si :
 - `OLLAMA_AUTO_START=true`
 - et `OLLAMA_BASE_URL` pointe vers un host local (`localhost`, `127.0.0.1`, `::1`)
@@ -104,7 +107,7 @@ Variables utiles :
 - `RUN_EMBEDDINGS=true|false`
 - `RUN_CLUSTERING=true|false`
 - `EMBEDDING_THREADS=4`
-- `MAX_TICKETS=300` (optionnel, limite le run à N tickets pour test rapide)
+- `MAX_TICKETS=300` (optionnel, limite la lecture XML dès le parsing streaming, utile pour gros exports)
 - `OLLAMA_READ_TIMEOUT=180`
 - `OLLAMA_OPEN_TIMEOUT=5`
 - `OLLAMA_RETRY_BASE_DELAY=0.5`
