@@ -11,7 +11,7 @@ require_relative 'config'
 require_relative 'xml_handler'
 require_relative 'cluster_topics'
 
-def run_clustering(input_file = AppConfig.embeddings_output, output_file = AppConfig.clusters_output, k = AppConfig.kmeans_k, tickets_xml_path: AppConfig.tickets_xml_path)
+def run_clustering(input_file = AppConfig.embeddings_output, output_file = AppConfig.clusters_output, k = AppConfig.kmeans_k, tickets_xml_path: AppConfig.tickets_xml_path, run_topics: AppConfig.run_cluster_topics?)
   puts "🧠 Chargement des embeddings depuis #{input_file}..."
   data = JSON.parse(File.read(input_file))
 
@@ -43,9 +43,13 @@ def run_clustering(input_file = AppConfig.embeddings_output, output_file = AppCo
   File.write(output_file, JSON.pretty_generate(clusters))
   puts "💾 Résultats clustering enregistrés dans #{output_file}"
 
-  puts '📂 Génération des thèmes de cluster via LLM local...'
-  tickets = load_tickets_from_xml(tickets_xml_path)
-  generate_cluster_topics(clusters, tickets, output_path: AppConfig.cluster_topics_output)
+  if run_topics
+    puts '📂 Génération des thèmes de cluster via LLM local...'
+    tickets = load_tickets_from_xml(tickets_xml_path)
+    generate_cluster_topics(clusters, tickets, output_path: AppConfig.cluster_topics_output)
+  else
+    puts '⏭️ Génération des thèmes de cluster désactivée (RUN_CLUSTER_TOPICS=false)'
+  end
 
   clusters
 end

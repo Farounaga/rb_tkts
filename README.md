@@ -106,6 +106,7 @@ Variables utiles :
 - `OLLAMA_STOP_TIMEOUT=10`
 - `RUN_EMBEDDINGS=true|false`
 - `RUN_CLUSTERING=true|false`
+- `RUN_CLUSTER_TOPICS=true|false` (désactive uniquement la génération LLM des titres de clusters)
 - `EMBEDDING_THREADS=4`
 - `MAX_TICKETS=300` (optionnel, limite la lecture XML dès le parsing streaming, utile pour gros exports)
 - `OLLAMA_READ_TIMEOUT=180`
@@ -170,6 +171,25 @@ Réglages conseillés pour accélérer les topics :
 - `TOPIC_NUM_PREDICT=32`
 - `TOPIC_TEMPERATURE=0.2`
 - augmenter `TOPIC_READ_TIMEOUT` si machine lente (ex: 240)
+
+
+
+
+### Mode statistiques sans LLM
+
+Pour parser le XML et produire les sorties analytiques sans appel LLM:
+- `RUN_EMBEDDINGS=false` (si `embeddings.json` existe déjà),
+- `RUN_CLUSTER_TOPICS=false` (pas de génération de titres via LLM),
+- garder `RUN_CLUSTERING_METRICS=true` / `RUN_SIMILARITY=true` selon besoin.
+
+Exemple minimal:
+```env
+RUN_EMBEDDINGS=false
+RUN_CLUSTERING=true
+RUN_CLUSTER_TOPICS=false
+RUN_CLUSTERING_METRICS=true
+RUN_SIMILARITY=true
+```
 
 
 ## Installation (Windows / macOS / Linux)
