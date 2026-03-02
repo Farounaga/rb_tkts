@@ -152,6 +152,11 @@ module AppConfig
     ENV.fetch('RUN_CLUSTERING', 'true') == 'true'
   end
 
+
+  def run_cluster_topics?
+    ENV.fetch('RUN_CLUSTER_TOPICS', 'true') == 'true'
+  end
+
   def run_similarity?
     ENV.fetch('RUN_SIMILARITY', 'true') == 'true'
   end

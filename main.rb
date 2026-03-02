@@ -43,7 +43,7 @@ begin
   puts "🧾 Modèle local de topics : #{AppConfig.ollama_llm_model}"
 
   if AppConfig.run_embeddings? || AppConfig.run_clustering?
-    OllamaBootstrap.ensure_ready!(need_llm: AppConfig.run_clustering?, need_embeddings: AppConfig.run_embeddings?)
+    OllamaBootstrap.ensure_ready!(need_llm: AppConfig.run_cluster_topics?, need_embeddings: AppConfig.run_embeddings?)
   end
 
   if AppConfig.run_embeddings?
