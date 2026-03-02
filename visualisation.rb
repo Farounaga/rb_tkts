@@ -606,6 +606,7 @@ module Visualiser
             <label class="muted">Étiquette (graphe hebdo)<br><select id="filterTag"><option value="__all__">Toutes</option></select></label>
             <button id="applyDashboardFilters" class="btn">Appliquer</button>
             <button id="resetDashboardFilters" class="btn">Réinitialiser</button>
+            <span id="filterResultCount" class="muted" style="margin-left:.5rem;"></span>
           </div>
         </section>
 
@@ -995,6 +996,22 @@ module Visualiser
           }
         }
 
+
+        function updateFilterResultCount(){
+          const box = document.getElementById('filterResultCount');
+          if (!box) return;
+
+          const totalTickets = filteredDayCounts.reduce((a,b)=>a + (Number(b)||0), 0);
+          if (focusedTag === '__all__') {
+            box.textContent = `${totalTickets} ticket(s) sur la période sélectionnée`;
+            return;
+          }
+
+          const ds = filteredTagDatasets.find(d => d.label === focusedTag);
+          const tagTickets = ds ? (ds.data || []).reduce((a,b)=>a + (Number(b)||0), 0) : 0;
+          box.textContent = `${totalTickets} ticket(s) période · ${tagTickets} ticket(s) étiquette « ${focusedTag} »`;
+        }
+
         function initFilterControls(){
           const fromEl = document.getElementById('filterDateFrom');
           const toEl = document.getElementById('filterDateTo');
@@ -1018,6 +1035,7 @@ module Visualiser
 
           document.getElementById('applyDashboardFilters').addEventListener('click', () => {
             applyFilters();
+            updateFilterResultCount();
             rebuildCharts();
           });
 
@@ -1026,6 +1044,7 @@ module Visualiser
             toEl.value = '';
             tagEl.value = '__all__';
             applyFilters();
+            updateFilterResultCount();
             rebuildCharts();
           });
         }
@@ -1040,6 +1059,7 @@ module Visualiser
 
         initFilterControls();
         applyFilters();
+        updateFilterResultCount();
 
         // Initial build
         rebuildCharts();
