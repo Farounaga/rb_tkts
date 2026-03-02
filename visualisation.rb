@@ -598,6 +598,17 @@ module Visualiser
         </section>
 
         <!-- Graphiques -->
+        <section class="card" id="section-filters">
+          <h2 class="section-title">🎛️ Filtres dashboard</h2>
+          <div class="toolbar" style="display:flex;flex-wrap:wrap;gap:.75rem;align-items:end;">
+            <label class="muted">Date début<br><input id="filterDateFrom" type="date"></label>
+            <label class="muted">Date fin<br><input id="filterDateTo" type="date"></label>
+            <label class="muted">Étiquette (graphe hebdo)<br><select id="filterTag"><option value="__all__">Toutes</option></select></label>
+            <button id="applyDashboardFilters" class="btn">Appliquer</button>
+            <button id="resetDashboardFilters" class="btn">Réinitialiser</button>
+          </div>
+        </section>
+
         <section class="sections" style="grid-template-columns:repeat(auto-fit,minmax(460px,1fr));">
           <div class="card">
             <h2 class="section-title">📊 Tickets par jour</h2>
@@ -758,9 +769,21 @@ module Visualiser
 
         // Sécurité longueurs
         const len = Math.min(dayEpochs.length, dayCounts.length, cumulative.length);
-        const _dayEpochs = dayEpochs.slice(0,len);
-        const _dayCounts = dayCounts.slice(0,len);
-        const _cumul     = cumulative.slice(0,len);
+        const baseDayEpochs = dayEpochs.slice(0,len);
+        const baseDayCounts = dayCounts.slice(0,len);
+
+        let filteredDayEpochs = baseDayEpochs.slice();
+        let filteredDayCounts = baseDayCounts.slice();
+        let filteredCumul = [];
+        let filteredTagEpochs = tagEpochs.slice();
+        let filteredTagLabels = tagLabels.slice();
+        let filteredTagDatasets = tagDatasets.map(ds => ({...ds, data: (ds.data || []).slice()}));
+        let focusedTag = '__all__';
+
+        function computeCumulative(values){
+          let sum = 0;
+          return values.map(v => (sum += v));
+        }
 
         // Palette dynamique
         function palette(){
@@ -815,7 +838,7 @@ module Visualiser
 
         function buildDaily(){
           const colors = chartColors();
-          const labelMap = condense(_dayEpochs, 12); // max ~12 labels
+          const labelMap = condense(filteredDayEpochs, 12); // max ~12 labels
           return new uPlot({
             width: document.getElementById('dailyChart').clientWidth,
             height: 300,
@@ -841,12 +864,12 @@ module Visualiser
               }
             ],
             plugins:[barsPlugin(), tooltipPlugin(formatFull, v=>v)]
-          }, [_dayEpochs, _dayCounts], document.getElementById('dailyChart'));
+          }, [filteredDayEpochs, filteredDayCounts], document.getElementById('dailyChart'));
         }
 
         function buildCumul(){
           const colors = chartColors();
-          const labelMap = condense(_dayEpochs, 12);
+          const labelMap = condense(filteredDayEpochs, 12);
           return new uPlot({
             width: document.getElementById('cumulativeChart').clientWidth,
             height: 300,
@@ -869,27 +892,27 @@ module Visualiser
               }
             ],
             plugins:[tooltipPlugin(formatFull, v=>v)]
-          }, [_dayEpochs, _cumul], document.getElementById('cumulativeChart'));
+          }, [filteredDayEpochs, filteredCumul], document.getElementById('cumulativeChart'));
         }
 
         function buildTags(){
           const colors = chartColors();
           const pal = palette();
 
-          const baseData = [tagEpochs];
+          const baseData = [filteredTagEpochs];
           const series = [{}];
-          tagDatasets.forEach((ds, i)=>{
+          filteredTagDatasets.forEach((ds, i)=>{
             baseData.push(ds.data);
             series.push({
               label: ds.label || ('Série '+(i+1)),
               stroke: ds.borderColor || pal[i % pal.length],
               width:2,
               spanGaps:true,
-              show: i < 6
+              show: focusedTag === '__all__' ? (i < 6) : (ds.label === focusedTag)
             });
           });
 
-          const labelMap = condense(tagEpochs, 14);
+          const labelMap = condense(filteredTagEpochs, 14);
           const axisValues = (u, vals)=> vals.map(v=>{
             return labelMap.find(o=>o.v===v && o.show) ? formatDay(v) : '';
           });
@@ -906,8 +929,8 @@ module Visualiser
             series: series,
             plugins:[tooltipPlugin(
               ts=>{
-                const idx = tagEpochs.indexOf(ts);
-                const raw = idx >= 0 ? tagLabels[idx] : '';
+                const idx = filteredTagEpochs.indexOf(ts);
+                const raw = idx >= 0 ? filteredTagLabels[idx] : '';
                 return `${formatFull(ts)}${raw && raw!==formatFull(ts) ? ' · '+raw : ''}`;
               },
               y=> y
@@ -932,6 +955,81 @@ module Visualiser
           return uT;
         }
 
+        function applyFilters(){
+          const fromEl = document.getElementById('filterDateFrom');
+          const toEl = document.getElementById('filterDateTo');
+          const tagEl = document.getElementById('filterTag');
+
+          const fromTs = fromEl.value ? Math.floor(new Date(fromEl.value + 'T00:00:00').getTime()/1000) : null;
+          const toTs = toEl.value ? Math.floor(new Date(toEl.value + 'T23:59:59').getTime()/1000) : null;
+          focusedTag = tagEl.value || '__all__';
+
+          const dayIdx = [];
+          baseDayEpochs.forEach((ts, i) => {
+            if ((fromTs === null || ts >= fromTs) && (toTs === null || ts <= toTs)) dayIdx.push(i);
+          });
+          filteredDayEpochs = dayIdx.map(i => baseDayEpochs[i]);
+          filteredDayCounts = dayIdx.map(i => baseDayCounts[i]);
+          filteredCumul = computeCumulative(filteredDayCounts);
+
+          const tagIdx = [];
+          tagEpochs.forEach((ts, i) => {
+            if ((fromTs === null || ts >= fromTs) && (toTs === null || ts <= toTs)) tagIdx.push(i);
+          });
+          filteredTagEpochs = tagIdx.map(i => tagEpochs[i]);
+          filteredTagLabels = tagIdx.map(i => tagLabels[i]);
+          filteredTagDatasets = tagDatasets.map(ds => ({
+            ...ds,
+            data: tagIdx.map(i => (ds.data || [])[i] ?? null)
+          }));
+
+          if (filteredDayEpochs.length === 0) {
+            filteredDayEpochs = [0];
+            filteredDayCounts = [0];
+            filteredCumul = [0];
+          }
+          if (filteredTagEpochs.length === 0) {
+            filteredTagEpochs = [0];
+            filteredTagLabels = [''];
+            filteredTagDatasets = tagDatasets.map(ds => ({...ds, data:[0]}));
+          }
+        }
+
+        function initFilterControls(){
+          const fromEl = document.getElementById('filterDateFrom');
+          const toEl = document.getElementById('filterDateTo');
+          const tagEl = document.getElementById('filterTag');
+
+          const allEpochs = baseDayEpochs.slice().sort((a,b)=>a-b);
+          if (allEpochs.length > 0){
+            const minDate = new Date(allEpochs[0]*1000).toISOString().slice(0,10);
+            const maxDate = new Date(allEpochs[allEpochs.length-1]*1000).toISOString().slice(0,10);
+            fromEl.min = minDate; fromEl.max = maxDate;
+            toEl.min = minDate; toEl.max = maxDate;
+          }
+
+          const labels = Array.from(new Set(tagDatasets.map(ds => ds.label).filter(Boolean))).sort();
+          labels.forEach(l => {
+            const opt = document.createElement('option');
+            opt.value = l;
+            opt.textContent = l;
+            tagEl.appendChild(opt);
+          });
+
+          document.getElementById('applyDashboardFilters').addEventListener('click', () => {
+            applyFilters();
+            rebuildCharts();
+          });
+
+          document.getElementById('resetDashboardFilters').addEventListener('click', () => {
+            fromEl.value = '';
+            toEl.value = '';
+            tagEl.value = '__all__';
+            applyFilters();
+            rebuildCharts();
+          });
+        }
+
         function rebuildCharts(){
           // détruire anciens
           [uDaily,uCumul,uTags].forEach(u => u && u.destroy());
@@ -939,6 +1037,9 @@ module Visualiser
           uCumul = buildCumul();
           uTags  = buildTags();
         }
+
+        initFilterControls();
+        applyFilters();
 
         // Initial build
         rebuildCharts();
