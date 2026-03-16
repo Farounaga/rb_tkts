@@ -192,6 +192,23 @@ RUN_SIMILARITY=true
 ```
 
 
+
+### Jeu de données de démonstration (50 tickets)
+
+Un fichier fictif est fourni pour tester rapidement sans données réelles :
+- `sample_data/tickets_demo_50.xml`
+
+Pour l'utiliser, dans `.env` :
+```env
+TICKETS_XML_PATH=sample_data/tickets_demo_50.xml
+MAX_TICKETS=50
+```
+Puis lancer normalement :
+```bash
+bundle exec ruby main.rb
+```
+
+
 ## Installation (Windows / macOS / Linux)
 
 1. Installer Ruby (>= 3.3.10).  

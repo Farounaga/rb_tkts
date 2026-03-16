@@ -5,5 +5,7 @@ embeddings.json
 /output
 *.json
 *.xml
+!sample_data/
+!sample_data/*.xml
 /mesvaccinshelp-20260302
 /old
