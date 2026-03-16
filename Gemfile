@@ -7,3 +7,8 @@ gem 'httparty'
 gem 'nokogiri'
 gem 'numo-narray'
 gem 'rumale'
+
+
+group :development, :test do
+  gem 'rspec'
+end
