@@ -7,6 +7,13 @@ Outil d’analyse des tickets de support (MesVaccins / Colibri) :
 - génération de sujets de clusters,
 - rapport HTML avec statistiques.
 
+## Dossier BTS SIO (documentation complète)
+
+Le README reste un point d'entrée technique.  
+La documentation d'examen structurée (01 à 07) est disponible ici :
+
+- [`docs/bts_sio/README.md`](docs/bts_sio/README.md)
+
 ## État actuel
 
 Le projet couvre déjà les briques principales d’un MVP :
