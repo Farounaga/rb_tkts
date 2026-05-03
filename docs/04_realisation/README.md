@@ -99,7 +99,7 @@ Le fichier `docker-compose.yml` definit trois services:
 
 | Service | Role | Port |
 |---|---|---|
-| `frontend` | Nginx, expose les livrables generes | `8080:80` |
+| `frontend` | Nginx, expose les livrables generes | `${FRONTEND_PORT:-18080}:80` |
 | `app-llm` | Pipeline Ruby + Ollama dans le conteneur | interne |
 | `xml-db` | BaseX HTTP pour base XML | `8984:8984` |
 
@@ -111,7 +111,7 @@ docker compose up --build
 
 URLs:
 
-- `http://localhost:8080`
-- `http://localhost:8080/reports/visualisation.html`
-- `http://localhost:8080/reports/tickets_summary.csv`
+- `http://localhost:18080`
+- `http://localhost:18080/reports/visualisation.html`
+- `http://localhost:18080/reports/tickets_summary.csv`
 

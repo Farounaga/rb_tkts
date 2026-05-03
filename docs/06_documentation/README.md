@@ -60,9 +60,9 @@ docker compose up --build
 
 Acces:
 
-- portail: `http://localhost:8080`;
-- rapport HTML: `http://localhost:8080/reports/visualisation.html`;
-- CSV: `http://localhost:8080/reports/tickets_summary.csv`;
+- portail: `http://localhost:18080`;
+- rapport HTML: `http://localhost:18080/reports/visualisation.html`;
+- CSV: `http://localhost:18080/reports/tickets_summary.csv`;
 - BaseX: `http://localhost:8984`.
 
 Arret:

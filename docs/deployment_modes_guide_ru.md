@@ -7,7 +7,7 @@
 Используется основной compose-файл: `docker-compose.yml`.
 
 Что поднимется:
-- `frontend` (Nginx) на `8080`
+- `frontend` (Nginx) на `18080`
 - `app-llm` (Ruby + Ollama)
 - `xml-db` (BaseX) на `8984`
 
@@ -24,8 +24,8 @@ docker compose ps
 ```
 
 Открыть в браузере:
-- `http://localhost:8080`
-- `http://localhost:8080/reports/visualisation.html`
+- `http://localhost:18080`
+- `http://localhost:18080/reports/visualisation.html`
 
 Остановка:
 
@@ -93,8 +93,8 @@ docker compose -f docker-compose.vm1-frontend.yml up -d --build
 ```
 
 Открыть:
-- `http://10.10.10.11:8080`
-- `http://10.10.10.11:8080/reports/visualisation.html`
+- `http://10.10.10.11:18080`
+- `http://10.10.10.11:18080/reports/visualisation.html`
 
 ---
 

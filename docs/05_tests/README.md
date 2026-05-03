@@ -60,7 +60,7 @@ La documentation courante doit etre accompagnee d'une nouvelle execution avant s
 | Execution demo courte | Configurer `TICKETS_XML_PATH=sample_data/tickets_demo_50.xml`, `MAX_TICKETS=50`, lancer `bundle exec ruby main.rb` | Generation des fichiers de sortie |
 | Mode sans Ollama | Mettre `RUN_EMBEDDINGS=false` et `RUN_CLUSTER_TOPICS=false` | Le pipeline ne bloque pas sur Ollama |
 | Mode degrade Ollama | Laisser Ollama indisponible avec `SKIP_OLLAMA_ON_ERROR=true` | Les etapes IA sont sautees sans interrompre tout le run |
-| Docker Compose | Lancer `docker compose up --build` | Frontend accessible sur `localhost:8080` |
+| Docker Compose | Lancer `docker compose up --build` | Frontend accessible sur `localhost:18080` |
 | Base XML | Activer `XML_DB_ENABLED=true` dans Docker | Import/lecture du XML via BaseX avec fallback local |
 
 ## Couverture des risques

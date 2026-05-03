@@ -13,7 +13,7 @@ Use static IPs in the same subnet (example):
 - `VM3 xml-db`: `10.10.10.13`
 
 Open only needed ports:
-- VM1: `8080/tcp` (for browser access)
+- VM1: `18080/tcp` (for browser access)
 - VM3: `8984/tcp` (allow from VM2 only)
 
 ## 2. Prerequisites (all VMs)
@@ -90,8 +90,8 @@ docker compose -f docker-compose.vm1-frontend.yml up -d --build
 ```
 
 Check in browser:
-- `http://10.10.10.11:8080`
-- `http://10.10.10.11:8080/reports/visualisation.html`
+- `http://10.10.10.11:18080`
+- `http://10.10.10.11:18080/reports/visualisation.html`
 
 ## 7. Re-run flow (exam demo)
 

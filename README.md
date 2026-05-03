@@ -302,8 +302,8 @@ docker compose up --build
 ```
 
 Accès frontend:
-- `http://localhost:8080`
-- rapport: `http://localhost:8080/reports/visualisation.html`
+- `http://localhost:18080`
+- rapport: `http://localhost:18080/reports/visualisation.html`
 
 Fichiers livrables:
 - `/reports/visualisation.html` (frontend)

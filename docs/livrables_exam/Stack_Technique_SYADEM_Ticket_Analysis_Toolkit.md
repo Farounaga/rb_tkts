@@ -75,7 +75,7 @@ flowchart TD
 | Portail | `docker/frontend/index.html` |
 | Serveur | Nginx |
 | Service Docker | `frontend` |
-| Port local | `8080` |
+| Port local | `18080` |
 | Ressources exposees | Rapport HTML et CSV depuis le volume `reports_data` |
 
 ## Docker

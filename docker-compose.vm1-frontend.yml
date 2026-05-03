@@ -5,7 +5,7 @@ services:
       dockerfile: docker/frontend/Dockerfile
     container_name: rb_tkts_frontend
     ports:
-      - "8080:80"
+      - "${FRONTEND_PORT:-18080}:80"
     volumes:
       - ./output:/usr/share/nginx/html/reports:ro
     restart: unless-stopped
