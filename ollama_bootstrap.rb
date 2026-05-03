@@ -8,6 +8,7 @@ module OllamaBootstrap
   module_function
 
   LOCAL_OLLAMA_HOSTS = ['localhost', '127.0.0.1', '::1'].freeze
+  UnavailableError = Class.new(StandardError)
 
   @server_pid = nil
   @started_by_bootstrap = false
@@ -17,16 +18,25 @@ module OllamaBootstrap
   end
 
   def ensure_ready!(need_llm: true, need_embeddings: true)
-    return unless AppConfig.ollama_auto_start?
-
     uri = URI.parse(AppConfig.ollama_base_url)
+    # Si le serveur est déjà joignable, on continue sans tenter de démarrage local.
+    if server_up?(uri)
+      pull_missing_models(uri, required_models(need_llm: need_llm, need_embeddings: need_embeddings)) if AppConfig.ollama_auto_start?
+      return true
+    end
+
+    # Sans autostart, on retourne simplement l'état "non prêt" au pipeline appelant.
+    return false unless AppConfig.ollama_auto_start?
+
+    # Sécurité: on ne tente pas de démarrer un service sur un host distant.
     unless LOCAL_OLLAMA_HOSTS.include?(uri.host)
-      puts "ℹ️ OLLAMA_BASE_URL pointe vers un serveur distant (#{AppConfig.ollama_base_url}), autostart local ignoré."
-      return
+      warn "⚠️ Ollama injoignable sur #{AppConfig.ollama_base_url} et autostart local impossible (host distant)."
+      return false
     end
 
     start_server_if_needed(uri)
     pull_missing_models(uri, required_models(need_llm: need_llm, need_embeddings: need_embeddings))
+    true
   end
 
   def shutdown_if_started!
@@ -67,7 +77,9 @@ module OllamaBootstrap
     terminate_process(pid)
     @server_pid = nil
     @started_by_bootstrap = false
-    raise 'Impossible de démarrer Ollama automatiquement. Lancez `ollama serve` manuellement.'
+    raise UnavailableError, 'Impossible de démarrer Ollama automatiquement. Lancez `ollama serve` manuellement.'
+  rescue Errno::ENOENT
+    raise UnavailableError, "`ollama` introuvable dans cet environnement. En WSL, utilisez OLLAMA_BASE_URL vers Windows et/ou OLLAMA_AUTO_START=false."
   end
 
   def terminate_process(pid)
@@ -121,6 +133,7 @@ module OllamaBootstrap
   end
 
   def pull_missing_models(uri, models)
+    # Cette étape reste optionnelle: seulement si autostart est actif.
     available = installed_model_names(uri)
 
     models.each do |model|
@@ -130,6 +143,8 @@ module OllamaBootstrap
       success = system('ollama', 'pull', model)
       raise "Échec du téléchargement du modèle #{model}" unless success
     end
+  rescue Errno::ENOENT
+    raise UnavailableError, "`ollama pull` indisponible dans cet environnement."
   end
 
   def installed_model_names(uri)

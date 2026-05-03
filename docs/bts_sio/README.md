@@ -11,6 +11,8 @@ Ce dossier complete le `README.md` principal et suit la structure attendue pour 
 5. [`05_tests.md`](./05_tests.md) - Plan de test, tests unitaires, rapport de test.
 6. [`06_documentation.md`](./06_documentation.md) - Documentation technique et utilisateur.
 7. [`07_bilan.md`](./07_bilan.md) - Limites, retour d'experience, axes d'amelioration.
+8. [`08_travaux_realises.md`](./08_travaux_realises.md) - Travaux implémentés, problèmes rencontrés, motivations techniques.
+9. [`09_guide_utilisation.md`](./09_guide_utilisation.md) - Guide pratique d'utilisation (local, Docker, troubleshooting).
 
 ## Fichiers complementaires
 

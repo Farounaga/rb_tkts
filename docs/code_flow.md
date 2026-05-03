@@ -7,6 +7,10 @@ Ce document décrit le **flux d'exécution réel** du projet (pipeline principal
 ```mermaid
 flowchart TD
     A[main.rb\nPoint d'entrée] --> B[config.rb\nCharge .env / ENV]
+    A --> B1{XML_DB_ENABLED ?}
+    B1 -- oui --> B2[xml_db_client.rb\nread/import via BaseX REST]
+    B1 -- non --> C
+    B2 --> C
     A --> C[xml_handler.rb\nload_tickets_from_xml]
     C --> D[(tickets en mémoire)]
 
@@ -41,6 +45,11 @@ flowchart TD
     S --> S1[(similar_tickets.json)]
     R -- non --> T[Skip similarity]
 
+    D --> X{RUN_EXPORT_CSV ?}
+    X -- oui --> Y[export_csv.rb\nexport_tickets_summary_csv]
+    Y --> Y1[(output/tickets_summary.csv)]
+    X -- non --> X2[Skip export CSV]
+
     D --> U[visualisation.rb\nGenerate HTML report]
     U --> U1[(output/visualisation.html)]
 
@@ -74,10 +83,11 @@ flowchart LR
 - Sorties pipeline:
   - `embeddings.json`
   - `clusters.json`
-  - `cluster_topics.json`
-  - `clustering_metrics.json`
-  - `similar_tickets.json`
-  - `output/visualisation.html`
+- `cluster_topics.json`
+- `clustering_metrics.json`
+- `similar_tickets.json`
+- `output/tickets_summary.csv`
+- `output/visualisation.html`
 
 ## 4) Notes d'architecture (actuel)
 

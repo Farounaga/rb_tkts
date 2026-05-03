@@ -51,7 +51,7 @@ Le traitement metier suit un pipeline:
 ### IA et machine learning
 
 - **Ollama local**: execution IA hors cloud pour respecter la confidentialite.
-- **Rumale + numo-narray**: outillage ML Ruby pour KMeans.
+- **MlUtils (module interne Ruby)**: calculs KMeans, standardisation, distances et silhouette.
 - **Methode cosinus**: pertinente pour mesurer la proximite semantique entre embeddings.
 
 ### Sortie metier

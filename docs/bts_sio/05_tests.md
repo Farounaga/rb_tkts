@@ -17,6 +17,9 @@ Le projet applique 3 niveaux:
 | T-04 | Unitaire | Verifier bootstrap Ollama | Etat Ollama simule | Decision de demarrage correcte |
 | T-05 | Integration | Run pipeline sur petit dataset | `sample_data/tickets_demo_50.xml` | Fichiers de sortie generes |
 | T-06 | Fonctionnel | Consulter rapport HTML | `output/visualisation.html` | Rapport lisible et coherent |
+| T-07 | Unitaire | Verifier calculs mathematiques connus | Vecteurs de reference | Distances/similarites exactes |
+| T-08 | Unitaire | Verifier cas limite robustesse | Vecteur nul, `k > n` | Comportement stable et maitrise |
+| T-09 | Unitaire | Verifier export CSV | Donnees JSON de pipeline mockees | CSV genere avec colonnes attendues |
 
 ## 5.3 Tests unitaires existants
 
@@ -27,6 +30,9 @@ Les specs presentes dans `spec/` couvrent notamment:
 - `cluster_topics_spec.rb`
 - `cluster_topics_format_spec.rb`
 - `ollama_bootstrap_spec.rb`
+- `ml_utils_spec.rb`
+- `clustering_metrics_spec.rb`
+- `export_csv_spec.rb`
 
 ## 5.4 Commandes de test
 

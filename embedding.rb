@@ -40,6 +40,9 @@ def get_embedding(text, model = AppConfig.ollama_embed_model, base_url = AppConf
 
   unless response.code == 200
     puts "❌ Erreur Ollama embeddings (HTTP #{response.code})"
+    if response.body.to_s.include?('input length exceeds the context length')
+      puts '⚠️ Le texte dépasse le contexte du modèle d embeddings.'
+    end
     return nil
   end
 
@@ -58,6 +61,21 @@ rescue => e
   nil
 end
 
+def prepare_text_for_embedding(text, max_chars = AppConfig.embedding_max_chars)
+  normalized = text.to_s.gsub(/\s+/, ' ').strip
+  return normalized if max_chars.to_i <= 0 || normalized.length <= max_chars
+
+  # On conserve le début + la fin du texte: souvent les deux zones utiles en support.
+  marker = ' ... [TRONQUE] ... '
+  return normalized[0, max_chars] if max_chars <= marker.length + 40
+
+  remaining = max_chars - marker.length
+  head_size = (remaining * 0.7).floor
+  tail_size = remaining - head_size
+
+  "#{normalized[0, head_size]}#{marker}#{normalized[-tail_size, tail_size]}"
+end
+
 def generate_embeddings_with_tickets(documents, tickets, model = AppConfig.ollama_embed_model, thread_count = AppConfig.embedding_threads, output_file = AppConfig.embeddings_output, max_retries = 3)
   queue = Queue.new
   mutex = Mutex.new
@@ -73,8 +91,13 @@ def generate_embeddings_with_tickets(documents, tickets, model = AppConfig.ollam
   workers = thread_count.times.map do |worker_idx|
     Thread.new do
       while (idx = (queue.pop(true) rescue nil))
-        text = documents[idx].to_s
+        raw_text = documents[idx].to_s
         ticket = tickets[idx]
+        current_max_chars = AppConfig.embedding_max_chars
+        text = prepare_text_for_embedding(raw_text, current_max_chars)
+        if text.length < raw_text.length
+          puts "✂️ Ticket #{ticket[:nice_id]} tronqué de #{raw_text.length} à #{text.length} caractères (max=#{current_max_chars})."
+        end
 
         embedding = nil
         retries = 0
@@ -83,6 +106,15 @@ def generate_embeddings_with_tickets(documents, tickets, model = AppConfig.ollam
           break if embedding
 
           retries += 1
+          # En retry, on réduit encore la longueur pour augmenter les chances de passer.
+          if current_max_chars > 1_000
+            reduced_max = [(current_max_chars * 0.7).to_i, 1_000].max
+            if reduced_max < current_max_chars
+              current_max_chars = reduced_max
+              text = prepare_text_for_embedding(raw_text, current_max_chars)
+              puts "✂️ Retry ticket #{ticket[:nice_id]} avec texte réduit à #{text.length} caractères."
+            end
+          end
           delay = AppConfig.ollama_retry_base_delay * (2**(retries - 1))
           puts "⚠️ Embedding vide, tentative #{retries}/#{max_retries} pour le ticket #{ticket[:nice_id]} (worker=#{worker_idx + 1}, pause #{format('%.1f', delay)}s)"
           sleep delay

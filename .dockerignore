@@ -1,0 +1,14 @@
+.git
+.gitignore
+tmp
+output
+vendor/bundle
+log
+*.log
+.env
+tickets.xml
+embeddings.json
+clusters.json
+cluster_topics.json
+clustering_metrics.json
+similar_tickets.json

@@ -6,22 +6,22 @@ Ce rapport synthese les executions de tests du projet pour les jalons BTS SIO.
 
 ## Campagne actuelle
 
-- Date: 2026-04-09 21:07:29 +02:00
+- Date: 2026-04-10 10:07:00 +02:00
 - Environnement: local
 - Commande principale: `bundle exec rspec`
 
 ## Resultat
 
-- Statut: non executable dans l'etat actuel du poste
-- Nombre de tests: non mesure (execution interrompue avant demarrage de RSpec)
-- Echecs: non mesure
+- Statut: OK
+- Nombre de tests: 25
+- Echecs: 0
 - Remarques:
-  - `bundle exec rspec` echoue avec `Bundler::GemNotFound` (gems manquantes).
-  - `bundle install` echoue par timeout reseau vers `https://rubygems.org` (port 443).
-  - La campagne est a relancer des que l'acces reseau a rubygems.org est stable.
+  - Ajout des specs unitaires `ml_utils_spec.rb`, `clustering_metrics_spec.rb`, `export_csv_spec.rb`.
+  - Verification des cas limites de robustesse (vecteur nul, `k > n`).
+  - Validation de l'export CSV et des nouveaux flags de configuration.
 
 ## Actions
 
-1. Retenter `bundle install`.
-2. Relancer `bundle exec rspec`.
-3. Mettre a jour ce rapport avec le nombre de tests executes et le resultat final.
+1. Relancer `bundle exec rspec` avant chaque demo/soutenance.
+2. Garder `RUN_EXPORT_CSV=true` pour produire le livrable non technique.
+3. En cas de WSL + Ollama Windows, utiliser `OLLAMA_AUTO_START=false` et `SKIP_OLLAMA_ON_ERROR=true`.

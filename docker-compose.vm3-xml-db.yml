@@ -1,0 +1,12 @@
+services:
+  xml-db:
+    image: basex/basexhttp:latest
+    container_name: rb_tkts_xml_db
+    ports:
+      - "8984:8984"
+    volumes:
+      - xml_db_data:/srv/BaseXData
+    restart: unless-stopped
+
+volumes:
+  xml_db_data:

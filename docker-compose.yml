@@ -1,0 +1,57 @@
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend/Dockerfile
+    container_name: rb_tkts_frontend
+    depends_on:
+      - app-llm
+    ports:
+      - "8080:80"
+    volumes:
+      - reports_data:/usr/share/nginx/html/reports:ro
+
+  xml-db:
+    image: basex/basexhttp:latest
+    container_name: rb_tkts_xml_db
+    ports:
+      - "8984:8984"
+    volumes:
+      - xml_db_data:/srv/BaseXData
+
+  app-llm:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: rb_tkts_app_llm
+    depends_on:
+      - xml-db
+    environment:
+      OLLAMA_BASE_URL: http://127.0.0.1:11434
+      OLLAMA_AUTO_START: "true"
+      SKIP_OLLAMA_ON_ERROR: "${SKIP_OLLAMA_ON_ERROR:-true}"
+
+      XML_DB_ENABLED: "true"
+      XML_DB_BASE_URL: "http://xml-db:8984"
+      XML_DB_USER: "${XML_DB_USER:-admin}"
+      XML_DB_PASSWORD: "${XML_DB_PASSWORD:-admin}"
+      XML_DB_DATABASE: "${XML_DB_DATABASE:-ticketsdb}"
+      XML_DB_RESOURCE: "${XML_DB_RESOURCE:-tickets.xml}"
+      XML_DB_IMPORT_ON_START: "true"
+
+      TICKETS_XML_PATH: "sample_data/tickets_demo_50.xml"
+      MAX_TICKETS: "${MAX_TICKETS:-50}"
+      RUN_EXPORT_CSV: "${RUN_EXPORT_CSV:-true}"
+      CSV_EXPORT_OUTPUT: "${CSV_EXPORT_OUTPUT:-output/tickets_summary.csv}"
+      OLLAMA_EMBED_MODEL: "${OLLAMA_EMBED_MODEL:-nomic-embed-text-v2-moe}"
+      OLLAMA_LLM_MODEL: "${OLLAMA_LLM_MODEL:-llama3.2:1b-instruct}"
+      EMBEDDING_MAX_CHARS: "${EMBEDDING_MAX_CHARS:-12000}"
+    volumes:
+      - reports_data:/app/output
+      - ./tmp:/app/tmp
+      - ollama_data:/root/.ollama
+
+volumes:
+  reports_data:
+  xml_db_data:
+  ollama_data:

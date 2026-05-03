@@ -8,8 +8,9 @@
 - Gestion dependances: Bundler
 - Parsing XML: Nokogiri
 - Appels HTTP: HTTParty
-- ML: Rumale + numo-narray
+- ML: module interne `MlUtils` (KMeans, scaling, cosinus, silhouette)
 - Tests: RSpec
+- Conteneurisation: Docker Compose (app + BaseX + Ollama)
 
 ### Prerequis locaux
 
@@ -75,6 +76,7 @@ Ces scripts permettent:
 - `cluster_topics.json`
 - `clustering_metrics.json`
 - `similar_tickets.json`
+- `output/tickets_summary.csv`
 - `output/visualisation.html`
 
 ## 4.7 Reproductibilite

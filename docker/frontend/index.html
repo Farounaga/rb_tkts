@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RB TKTS Frontend</title>
+    <style>
+      :root {
+        --bg: #f2f4f8;
+        --card: #ffffff;
+        --text: #1a1f2b;
+        --muted: #556070;
+        --link: #0a5dd8;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(120deg, #eef2f9 0%, #f8fbff 100%);
+        color: var(--text);
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+      }
+
+      .card {
+        width: min(680px, 100%);
+        background: var(--card);
+        border-radius: 16px;
+        padding: 28px;
+        box-shadow: 0 12px 30px rgba(8, 26, 58, 0.08);
+      }
+
+      h1 {
+        margin-top: 0;
+        margin-bottom: 8px;
+        font-size: 1.6rem;
+      }
+
+      p {
+        margin-top: 0;
+        color: var(--muted);
+      }
+
+      ul {
+        margin: 0;
+        padding-left: 20px;
+      }
+
+      li {
+        margin: 10px 0;
+      }
+
+      a {
+        color: var(--link);
+        text-decoration: none;
+      }
+
+      a:hover {
+        text-decoration: underline;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="card">
+      <h1>RB TKTS - Frontend</h1>
+      <p>
+        Ce conteneur expose les livrables générés par le pipeline Ruby + LLM.
+      </p>
+      <ul>
+        <li>
+          Rapport HTML:
+          <a href="/reports/visualisation.html">/reports/visualisation.html</a>
+        </li>
+        <li>
+          Export CSV:
+          <a href="/reports/tickets_summary.csv">/reports/tickets_summary.csv</a>
+        </li>
+      </ul>
+    </main>
+  </body>
+</html>

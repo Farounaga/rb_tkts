@@ -13,6 +13,7 @@ Le README reste un point d'entrée technique.
 La documentation d'examen structurée (01 à 07) est disponible ici :
 
 - [`docs/bts_sio/README.md`](docs/bts_sio/README.md)
+- Guide d'utilisation direct: [`docs/bts_sio/09_guide_utilisation.md`](docs/bts_sio/09_guide_utilisation.md)
 
 ## État actuel
 
@@ -65,8 +66,18 @@ Priorités principales :
 - `embedding.rb` — génération des embeddings.
 - `clusterer.rb` — clustering KMeans.
 - `cluster_topics.rb` — thèmes LLM par cluster.
+- `export_csv.rb` — export CSV récapitulatif pour usage non technique.
 - `visualisation.rb` — génération du rapport HTML.
 - `calculs.rb` — API Zendesk + agrégations de tags.
+
+## Mises à jour réalisées (examens BTS)
+
+- Renforcement des tests unitaires sur les modules de calcul/analyse (`MlUtils`, métriques de clustering).
+- Ajout de cas limites de robustesse (vecteur nul, `k` invalide).
+- Suppression de code redondant/obsolète dans `clusterer.rb` (refactoring incomplet nettoyé).
+- Harmonisation de la configuration via helpers (`fetch_bool`, `fetch_int`, `fetch_float`) dans `config.rb`.
+- Ajout d’un export CSV complet (`output/tickets_summary.csv`) intégré au pipeline.
+- Ajout d’un mode dégradé: si Ollama est indisponible, les étapes dépendantes sont skipées sans casser tout le run (`SKIP_OLLAMA_ON_ERROR=true`).
 
 ## Valeur pour le métier
 
@@ -111,10 +122,17 @@ Variables utiles :
 - `OLLAMA_START_TIMEOUT=30`
 - `OLLAMA_AUTO_STOP=true|false` (défaut : `true`)
 - `OLLAMA_STOP_TIMEOUT=10`
+- `SKIP_OLLAMA_ON_ERROR=true|false` (défaut : `true`)
+- `XML_DB_ENABLED=true|false` (défaut : `false`)
+- `XML_DB_BASE_URL=http://xml-db:8984`
+- `XML_DB_DATABASE=ticketsdb`
+- `XML_DB_RESOURCE=tickets.xml`
+- `XML_DB_IMPORT_ON_START=true|false`
 - `RUN_EMBEDDINGS=true|false`
 - `RUN_CLUSTERING=true|false`
 - `RUN_CLUSTER_TOPICS=true|false` (désactive uniquement la génération LLM des titres de clusters)
 - `EMBEDDING_THREADS=4`
+- `EMBEDDING_MAX_CHARS=12000` (tronque les tickets trop longs avant embeddings)
 - `MAX_TICKETS=300` (optionnel, limite la lecture XML dès le parsing streaming, utile pour gros exports)
 - `OLLAMA_READ_TIMEOUT=180`
 - `OLLAMA_OPEN_TIMEOUT=5`
@@ -125,6 +143,11 @@ Variables utiles :
 - `TOPIC_RETRY_BASE_DELAY=0.5`
 - `TOPIC_NUM_PREDICT=32`
 - `TOPIC_TEMPERATURE=0.2`
+- `RUN_EXPORT_CSV=true|false` (défaut : `true`)
+- `CSV_EXPORT_OUTPUT=output/tickets_summary.csv`
+
+Si vous voyez l'erreur Ollama `input length exceeds the context length`,
+baissez `EMBEDDING_MAX_CHARS` (ex: `8000` ou `6000`) puis relancez.
 
 
 ## Qualité de clustering et similarité
@@ -141,6 +164,8 @@ Variables associées (ENV) :
 - `RUN_SIMILARITY=true|false`
 - `SIMILARITY_TOP_K` (défaut 5)
 - `SIMILARITY_THRESHOLD` (défaut 0.80)
+- `RUN_EXPORT_CSV=true|false`
+- `CSV_EXPORT_OUTPUT=output/tickets_summary.csv`
 
 
 Explication pédagogique des métriques : `docs/metrics_expliquees.md`.
@@ -196,7 +221,20 @@ RUN_CLUSTERING=true
 RUN_CLUSTER_TOPICS=false
 RUN_CLUSTERING_METRICS=true
 RUN_SIMILARITY=true
+RUN_EXPORT_CSV=true
 ```
+
+### Cas WSL + Ollama sur Windows
+
+Si le code tourne dans WSL et que Ollama tourne côté Windows:
+
+```env
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_AUTO_START=false
+SKIP_OLLAMA_ON_ERROR=true
+```
+
+Le pipeline ne tombe plus en erreur si `ollama` n’est pas installé dans WSL.
 
 
 
@@ -246,6 +284,46 @@ bundle exec ruby main.rb
    bundle exec ruby main.rb
    ```
 
+## Déploiement Docker (3 conteneurs)
+
+Le projet peut tourner avec 3 services:
+1. `frontend` (Nginx) = interface web statique (rapport HTML + CSV).
+2. `app-llm` = pipeline Ruby + runtime Ollama dans le même conteneur.
+3. `xml-db` (BaseX) = base NoSQL XML.
+
+Communication inter-conteneurs:
+- `app-llm` -> `xml-db` via `http://xml-db:8984/rest/...`
+- `frontend` lit les fichiers générés depuis un volume partagé (`reports_data`).
+
+Lancement:
+
+```bash
+docker compose up --build
+```
+
+Accès frontend:
+- `http://localhost:8080`
+- rapport: `http://localhost:8080/reports/visualisation.html`
+
+Fichiers livrables:
+- `/reports/visualisation.html` (frontend)
+- `/reports/tickets_summary.csv` (frontend)
+
+Variables clés Docker:
+- `XML_DB_ENABLED=true` (activé dans compose pour le service `app-llm`)
+- `XML_DB_BASE_URL=http://xml-db:8984`
+- `OLLAMA_BASE_URL=http://127.0.0.1:11434`
+- `OLLAMA_AUTO_START=true` (Ollama est démarré dans le conteneur `app-llm`)
+
+Arrêt:
+
+```bash
+docker compose down
+```
+
+Déploiement sur 3 VMs (mode examen): `docs/vm_deployment_guide.md`
+Guide FR/RU (1 ПК и 3 ПК): `docs/deployment_modes_guide_ru.md`
+
 Optionnel (diagnostic rapide):
 ```bash
 bundle exec ruby bin/check_env.rb
@@ -263,7 +341,6 @@ bundle exec ruby main.rb
 
 ### Note Windows Ruby 3.4
 
-Le projet utilise des dépendances natives pour la partie ML (`numo-narray`, `rumale`).
 Si `bundle install` échoue sur Windows, vérifiez d'abord les toolchains Ruby/MSYS2,
 l'accès réseau à rubygems.org, puis relancez:
 
