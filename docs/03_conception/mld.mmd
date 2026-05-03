@@ -1,0 +1,75 @@
+erDiagram
+    tickets ||--o{ comments : "ticket_id"
+    tickets ||--o{ ticket_field_entries : "ticket_id"
+    tickets ||--o| embeddings : "ticket_id"
+    tickets ||--o| cluster_assignments : "ticket_id"
+    clusters ||--o{ cluster_assignments : "cluster_id"
+    clusters ||--o| cluster_topics : "cluster_id"
+    tickets ||--o{ ticket_similarities : "source_ticket_id"
+    tickets ||--o{ ticket_similarities : "target_ticket_id"
+
+    tickets {
+        bigint id PK
+        varchar nice_id UK
+        text subject
+        text description
+        timestamp created_at
+        timestamp updated_at
+        varchar status_id
+        varchar priority_id
+        varchar requester_id
+        jsonb raw_payload_json
+        timestamp inserted_at
+    }
+
+    comments {
+        bigint id PK
+        bigint ticket_id FK
+        varchar author_id
+        timestamp created_at
+        text value
+        boolean is_public
+        timestamp inserted_at
+    }
+
+    ticket_field_entries {
+        bigint id PK
+        bigint ticket_id FK
+        varchar ticket_field_id
+        text value
+    }
+
+    embeddings {
+        bigint ticket_id PK,FK
+        varchar model_name
+        jsonb vector_json
+        timestamp created_at
+    }
+
+    clusters {
+        bigint id PK
+        int label UK
+        timestamp created_at
+    }
+
+    cluster_assignments {
+        bigint ticket_id PK,FK
+        bigint cluster_id FK
+        timestamp assigned_at
+    }
+
+    cluster_topics {
+        bigint cluster_id PK,FK
+        text topic_title
+        varchar model_name
+        timestamp created_at
+    }
+
+    ticket_similarities {
+        bigint source_ticket_id PK,FK
+        bigint target_ticket_id PK,FK
+        double similarity_score
+        boolean probable_duplicate
+        timestamp created_at
+    }
+

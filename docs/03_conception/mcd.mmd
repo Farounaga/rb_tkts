@@ -1,0 +1,62 @@
+erDiagram
+    TICKET ||--o{ COMMENTAIRE : contient
+    TICKET ||--o{ ENTREE_CHAMP_TICKET : possede
+    TICKET ||--o| EMBEDDING : est_vectorise_par
+    TICKET ||--o| AFFECTATION_CLUSTER : est_classe_dans
+    CLUSTER ||--o{ AFFECTATION_CLUSTER : regroupe
+    CLUSTER ||--o| TOPIC_CLUSTER : est_decrit_par
+    TICKET ||--o{ SIMILARITE_TICKET : ticket_source
+    TICKET ||--o{ SIMILARITE_TICKET : ticket_cible
+
+    TICKET {
+        string nice_id
+        string subject
+        text description
+        datetime created_at
+        datetime updated_at
+        string status_id
+        string priority_id
+        string requester_id
+        string current_tags
+    }
+
+    COMMENTAIRE {
+        string author_id
+        datetime created_at
+        boolean is_public
+        string type
+        text value
+    }
+
+    ENTREE_CHAMP_TICKET {
+        string ticket_field_id
+        text value
+    }
+
+    EMBEDDING {
+        string model_name
+        json vector
+        datetime created_at
+    }
+
+    CLUSTER {
+        int label
+        datetime created_at
+    }
+
+    AFFECTATION_CLUSTER {
+        datetime assigned_at
+    }
+
+    TOPIC_CLUSTER {
+        string topic_title
+        string model_name
+        datetime created_at
+    }
+
+    SIMILARITE_TICKET {
+        float similarity_score
+        boolean probable_duplicate
+        datetime created_at
+    }
+
